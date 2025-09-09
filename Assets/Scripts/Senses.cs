@@ -31,6 +31,12 @@ public class Senses : MonoBehaviour
     
     // 4) Un archivo de configuración.
     
+    
+    // Lista de GameObjects encontrados este frame
+    private GameObject[] _foundGameObjects ;
+    public GameObject[] foundGameObjects => _foundGameObjects;
+
+    
     public static Vector3 PuntaMenosCola(Vector3 punta, Vector3 cola)
     {
         float x = punta.x - cola.x;
@@ -58,10 +64,10 @@ public class Senses : MonoBehaviour
     void DetectarTodosLosGameObjects()
     {
         // Esta obtiene TODOS los gameObjects en la escena.
-         GameObject[] allGameObjects = FindObjectsByType<GameObject>(FindObjectsSortMode.None);
+         _foundGameObjects = FindObjectsByType<GameObject>(FindObjectsSortMode.None);
 
          // Después los filtramos para que solo nos dé los que sí están dentro del radio determinado.
-         foreach (var foundGameObject in allGameObjects)
+         foreach (var foundGameObject in _foundGameObjects)
          {
              // Primero hacemos punta menos cola entre la posición de este GameObject y la del foundGameObject,
              // esto nos da la flecha que va del uno al otro,
@@ -83,9 +89,23 @@ public class Senses : MonoBehaviour
                  Debug.Log($"El objeto: {foundGameObject.name} No está dentro del radio.");
              }
          }
-         
     }
-    
+
+    public List<GameObject> GetPlayers()
+    {
+        List<GameObject> players = new List<GameObject>();
+        foreach (var foundObject in _foundGameObjects)
+        {
+            if (foundObject.tag != "Player")
+                continue; // continue es: vete a la siguiente iteración del ciclo en donde estás.
+                // break; // break es: salte del ciclo donde estés.
+            
+            // Si sí es un player, le digo que lo meta en la lista
+            players.Add(foundObject);
+        }
+
+        return players;
+    }
     
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -107,11 +127,8 @@ public class Senses : MonoBehaviour
 
         if (Application.isPlaying)
         {
-            // Esta obtiene TODOS los gameObjects en la escena.
-            GameObject[] allGameObjects = FindObjectsByType<GameObject>(FindObjectsSortMode.None);
-
             // Después los filtramos para que solo nos dé los que sí están dentro del radio determinado.
-            foreach (var foundGameObject in allGameObjects)
+            foreach (var foundGameObject in _foundGameObjects)
             {
                 // Primero hacemos punta menos cola entre la posición de este GameObject y la del foundGameObject,
                 // esto nos da la flecha que va del uno al otro,

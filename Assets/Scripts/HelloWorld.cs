@@ -7,6 +7,8 @@ using UnityEngine;
 public class HelloWorld : MonoBehaviour
 {
     private NonMonoBehaviour _nonMonoBehaviour = new NonMonoBehaviour();
+
+    public Vector3 velocity = Vector3.zero;
     
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     // Todos los Start de todos los monoBehaviours se van a ejecutar antes que el update de cualquier monobehaviour.
@@ -33,9 +35,14 @@ public class HelloWorld : MonoBehaviour
 
         // Quiero mi objeto se mueva 1 unidad por frame
         // transform.position += new Vector3(1, 0, 0);
+
+        velocity += new Vector3(0.0f, -9.81f, 0.0f) * Time.deltaTime;
+
+        transform.position += velocity * Time.deltaTime;
+        
         
         // Quiero mi objeto se mueva 1 unidad por segundo
-        transform.position += new Vector3(5, 0, 0) * Time.deltaTime;
+        // transform.position += new Vector3(5, 0, 0) * Time.deltaTime;
 
         // Qué significa "Delta"?
         // Viene del abecedario griego y es el equivalente de la letra D.

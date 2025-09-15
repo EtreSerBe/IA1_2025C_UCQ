@@ -57,7 +57,7 @@ public class SteeringBehaviors : MonoBehaviour
         // Si sí hay un objetivo, empezamos a hacer Seek, o sea, a perseguir ese objetivo.
         // Lo primero es obtener la dirección deseada. El método punta menos cola lo usamos con nuestra posición
         // como la cola, y la posición objetivo como la punta
-        Vector3 puntaMenosCola = Senses.PuntaMenosCola(transform.position, _targetPosition);
+        Vector3 puntaMenosCola = Senses.PuntaMenosCola(_targetPosition, transform.position);
         _desiredDirection = puntaMenosCola.normalized; // normalized nos da la pura dirección con una magnitud de 1.
 
         // Ya que tenemos esa dirección, la multiplicamos por nuestra velocidad máxima posible, y eso es la velocidad deseada.

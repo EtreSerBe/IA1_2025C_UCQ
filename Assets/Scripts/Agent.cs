@@ -23,13 +23,41 @@ public class Agent : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
+        // Necesitamos obtener ese script de Senses para asignarlo a la variable _senses.
+        // Requisitos para que esto funcione: 
+        // 1) que este gameObject tenga un componente de dicho tipo.
+        // 2) asegurarse de que ese componente está activo.
+        // 3) asegurarse de que se obtuvo adecuadamente el componente.
+        _senses = GetComponent<Senses>();
+        if (!_senses) // checamos si se obtuvo adecuadamente
+        {
+            // Si no se obtuvo, imprimimos un mensaje de warning.
+            Debug.LogWarning($"Advertencia: este gameObject: {gameObject.name} no encontró su componente" +
+                             $" de Senses. Tal vez olvidaste agregarlo? ");
+        }
+
+        if(!TryGetComponent<SteeringBehaviors>(out _steeringBehaviors))
+        {
+            // Si no se obtuvo, imprimimos un mensaje de warning.
+            Debug.LogWarning($"Advertencia: este gameObject: {gameObject.name} no encontró su componente" +
+                             $" de SteeringBehaviors. Tal vez olvidaste agregarlo? ");
+        }
+        
+        // _steeringBehaviors = GetComponent<SteeringBehaviors>();
+        // if (!_steeringBehaviors) // checamos si se obtuvo adecuadamente
+        // {
+        //     // Si no se obtuvo, imprimimos un mensaje de warning.
+        //     Debug.LogWarning($"Advertencia: este gameObject: {gameObject.name} no encontró su componente" +
+        //                      $" de SteeringBehaviors. Tal vez olvidaste agregarlo? ");
+        // }
         
     }
 
     // Update is called once per frame
     void Update()
     {
-        List<GameObject> foundPlayers = _senses.GetPlayers();
+        List<GameObject> foundPlayers = _senses.GetAllObjectsByLayer(LayerMask.NameToLayer("Player"));
+        
         // de los players encontrados, vamos a irnos por el que esté más cerca de este agente.
         // el que esté más cerca será el player que tenga la menor distancia con respecto a este agente.
         float shortestDistance = float.PositiveInfinity;
@@ -53,8 +81,12 @@ public class Agent : MonoBehaviour
             // Entonces sí encontramos al player má cercano. Aquí ya podemos reaccionar a eso.
             _steeringBehaviors.SetTarget(nearestPlayer.transform.position);
         }
-        // si no no hay quien reaccionar.
-        _steeringBehaviors.RemoveTarget();
+        else
+        {
+            // si no no hay quien reaccionar.
+            _steeringBehaviors.RemoveTarget();            
+        }
+
         
     }
 }

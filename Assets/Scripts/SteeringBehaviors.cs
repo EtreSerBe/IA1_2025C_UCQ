@@ -47,6 +47,22 @@ public class SteeringBehaviors : MonoBehaviour
         
     }
 
+    public Vector3 Seek(Vector3 targetPosition)
+    {
+        // Si sí hay un objetivo, empezamos a hacer Seek, o sea, a perseguir ese objetivo.
+        // Lo primero es obtener la dirección deseada. El método punta menos cola lo usamos con nuestra posición
+        // como la cola, y la posición objetivo como la punta
+        Vector3 puntaMenosCola = Senses.PuntaMenosCola(targetPosition, transform.position);
+        Vector3 desiredDirection = puntaMenosCola.normalized; // normalized nos da la pura dirección con una magnitud de 1.
+
+        // Ya que tenemos esa dirección, la multiplicamos por nuestra velocidad máxima posible, y eso es la velocidad deseada.
+        Vector3 desiredVelocity = desiredDirection * maxSpeed;
+        
+        // La steering force es la diferencia entre la velocidad deseada y la velocidad actual
+        Vector3 steeringForce = desiredVelocity - _currentVelocity;
+        return steeringForce;
+    }
+    
     // Update is called once per frame
     void Update()
     {
@@ -54,17 +70,24 @@ public class SteeringBehaviors : MonoBehaviour
         if (!_targetIsSet)
             return; // si no lo hay, no hagas nada.
         
-        // Si sí hay un objetivo, empezamos a hacer Seek, o sea, a perseguir ese objetivo.
-        // Lo primero es obtener la dirección deseada. El método punta menos cola lo usamos con nuestra posición
-        // como la cola, y la posición objetivo como la punta
+        // Pursuit
+        // Tenemos que obtener la posición futura del objetivo. Necesitamos:
+        // A) La posición actual del objetivo.
+        // B) la velocidad actual del objetivo (el vector que trae tanto magnitud como dirección)
+        // C) el tiempo en el futuro en el que queremos predecir (por ejemplo, 2 segundos, 5 segundos, 1 hora, etc.)
+        // _targetPosition
+        // Vector3 predictedPosition = Vector3.one;
+        
+        
         Vector3 puntaMenosCola = Senses.PuntaMenosCola(_targetPosition, transform.position);
-        _desiredDirection = puntaMenosCola.normalized; // normalized nos da la pura dirección con una magnitud de 1.
+        Vector3 desiredDirection = puntaMenosCola.normalized; // normalized nos da la pura dirección con una magnitud de 1.
 
         // Ya que tenemos esa dirección, la multiplicamos por nuestra velocidad máxima posible, y eso es la velocidad deseada.
-        _desiredVelocity = _desiredDirection * maxSpeed;
+        Vector3 desiredVelocity = desiredDirection * maxSpeed;
         
         // La steering force es la diferencia entre la velocidad deseada y la velocidad actual
-        _steeringForce = _desiredVelocity - _currentVelocity;
+        _steeringForce = desiredVelocity - _currentVelocity;
+
         
         // la steering force no puede ser mayor que la max steering force PERO sí puede ser menor.
         _steeringForce = Vector3.ClampMagnitude(_steeringForce, maxForce);
@@ -83,8 +106,6 @@ public class SteeringBehaviors : MonoBehaviour
         
         // y después, cambiamos la posición del agente conforme a la velocidad y cuánto tiempo ha pasado.
         transform.position += _currentVelocity * Time.deltaTime;
-
-
     }
 
     private void OnDrawGizmos()

@@ -14,7 +14,7 @@ public class Agent : MonoBehaviour
     // Ejemplos: Si tiene mucha o poca HP,
     // Si todavía tiene balas o ya no.
 
-    private SteeringBehaviors _steeringBehaviors;
+    private RigidbodySteeringBehaviours _steeringBehaviors;
     
     // si detectaste a algún gameObject que tenga la tag de player, persíguelo.
     
@@ -36,7 +36,7 @@ public class Agent : MonoBehaviour
                              $" de Senses. Tal vez olvidaste agregarlo? ");
         }
 
-        if(!TryGetComponent<SteeringBehaviors>(out _steeringBehaviors))
+        if(!TryGetComponent<RigidbodySteeringBehaviours>(out _steeringBehaviors))
         {
             // Si no se obtuvo, imprimimos un mensaje de warning.
             Debug.LogWarning($"Advertencia: este gameObject: {gameObject.name} no encontró su componente" +
@@ -78,8 +78,9 @@ public class Agent : MonoBehaviour
         // EXCEPTO si no hay ningún player.
         if (nearestPlayer)
         {
+            Rigidbody targetRb = nearestPlayer.GetComponent<Rigidbody>();
             // Entonces sí encontramos al player má cercano. Aquí ya podemos reaccionar a eso.
-            _steeringBehaviors.SetTarget(nearestPlayer.transform.position);
+            _steeringBehaviors.SetTarget(nearestPlayer.transform.position, targetRb);
         }
         else
         {

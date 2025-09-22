@@ -42,7 +42,7 @@ public class PatrolSteeringBehavior : RigidbodySteeringBehaviours
     {
         // para cambiar el índice hacia el siguiente waypoint lo hacemos cuando ya hayamos llegado al actual.
         float distanceToWaypoint =
-            Senses.PuntaMenosCola(waypoints[_currentTargetWaypoint].position, transform.position).magnitude;
+            Utilities.PuntaMenosCola(waypoints[_currentTargetWaypoint].position, transform.position).magnitude;
 
         // esto es la manera estándar en que lo harían
         // Vector3.Distance(waypoints[_currentTargetWaypoint].position, transform.position);

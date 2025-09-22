@@ -986,7 +986,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f9ffd83e2ac6e8a4493be14d8ec656cd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  radioDeDeteccion: 25
+  radioDeDeteccion: 537.1
   radioDeDeteccionPrivado: 2
   desiredDetectionLayers:
     serializedVersion: 2
@@ -1003,6 +1003,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5eeb7a04a315e6b47bfcf83ba6595a61, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  MaxHP: 10
+  CurrentHP: 10
+  HPToFlee: 3
+  RadiusBeforeStopMovingDuringFlee: 10
 --- !u!54 &1195247319
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -1042,7 +1046,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dd7818063c4b8f543b02663cb8734aa1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxSpeed: 5
+  currentBehavior: 0
+  maxSpeed: 10
   maxForce: 25
   lookAheadTime: 1
   _targetPosition: {x: 0, y: 0, z: 0}
@@ -1577,6 +1582,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7e0ac01d223b4914d8ef5363513bee80, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  currentBehavior: 0
   maxSpeed: 10
   maxForce: 5
   lookAheadTime: 2

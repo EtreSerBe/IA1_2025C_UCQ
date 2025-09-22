@@ -17,7 +17,12 @@ public class Agent : MonoBehaviour
     private RigidbodySteeringBehaviours _steeringBehaviors;
     
     // si detectaste a algún gameObject que tenga la tag de player, persíguelo.
-    
+
+    public int MaxHP;
+    public int CurrentHP;
+    public int HPToFlee;
+
+    public float RadiusBeforeStopMovingDuringFlee = 10.0f;
     
     
     // Start is called once before the first execution of Update after the MonoBehaviour is created
@@ -74,10 +79,34 @@ public class Agent : MonoBehaviour
             }
         }
         
+        
+        
         // cuando termine el foreach, ya vamos a tener al player más cercano a este agente.
         // EXCEPTO si no hay ningún player.
         if (nearestPlayer)
         {
+            // Si este agente tiene poquita HP de sobra, que cambie a flee
+            if (CurrentHP <= HPToFlee)
+            {
+                if (Utilities.IsObjectInRange(transform.position, nearestPlayer.transform.position, RadiusBeforeStopMovingDuringFlee))
+                {
+                    // si sí estoy dentro de ese rango, sí voy a escapar porque todavía no estoy suficientemente lejos.
+                    _steeringBehaviors.currentBehavior = ESteeringBehaviors.Flee;
+                }
+                else
+                {
+                    // si no, quiere decir que ya estamos suficientemente lejos, entonces que se quede quieto.
+                    _steeringBehaviors.currentBehavior = ESteeringBehaviors.DontMove;
+                }
+                // otra posibilidad sería que le haga seek hacia una curación en el escenario o algo.
+            }
+            else
+            {
+                // si tiene mucha vida, que cambie a pursuit
+                _steeringBehaviors.currentBehavior = ESteeringBehaviors.Pursuit;
+            }
+            
+            
             Rigidbody targetRb = nearestPlayer.GetComponent<Rigidbody>();
             // Entonces sí encontramos al player má cercano. Aquí ya podemos reaccionar a eso.
             _steeringBehaviors.SetTarget(nearestPlayer.transform.position, targetRb);

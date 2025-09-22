@@ -42,27 +42,9 @@ public class Senses : MonoBehaviour
     public List<GameObject> foundGameObjects => _foundGameObjects;
 
     
-    public static Vector3 PuntaMenosCola(Vector3 punta, Vector3 cola)
-    {
-        float x = punta.x - cola.x;
-        float y = punta.y - cola.y;
-        float z = punta.z - cola.z;
-        return new Vector3(x, y, z);
-        
-        // Internamente, esta línea hace lo que las 4 líneas de arriba harían.
-        // return punta - cola;
-    }
 
-    public static float Pitagoras(Vector3 vector3)
-    {
-        // hipotenusa = raíz cuadrada de a^2 + b^2 + c^2
-        float hipotenusa = math.sqrt(vector3.x * vector3.x +
-                                     vector3.y * vector3.y +
-                                     vector3.z * vector3.z);
-        return hipotenusa;
 
-        // return vector3.magnitude;
-    }
+
         
     
     // Vamos a detectar cosas que estén en un radio determinado.
@@ -81,7 +63,7 @@ public class Senses : MonoBehaviour
         // Después los filtramos para que solo nos dé los que sí están dentro del radio determinado.
         foreach (var foundGameObject in foundGO)
         {
-            if (IsObjectInRange(foundGameObject.transform.position, position, radius))
+            if (Utilities.IsObjectInRange(foundGameObject.transform.position, position, radius))
             {
                 gameObjectsInsideRadius.Add(foundGameObject);
             }
@@ -90,59 +72,11 @@ public class Senses : MonoBehaviour
         return gameObjectsInsideRadius;
     }
 
-    /// <summary>
-    /// Requiere que los objetos a detectarse tengan colliders que toquen a la esfera descrita por estos parámetros.
-    /// </summary>
-    /// <param name="position"></param>
-    /// <param name="radius"></param>
-    /// <param name="desiredLayers"></param>
-    /// <returns></returns>
-    public static List<GameObject> GetObjectsInRadius(Vector3 position, float radius, LayerMask desiredLayers)
-    {
-        Collider[] collidersInRadius = Physics.OverlapSphere(position, radius, desiredLayers);
 
-        List<GameObject> objectsInRadius = new List<GameObject>();
-        foreach (var collider in collidersInRadius)
-        {
-            objectsInRadius.Add(collider.GameObject());
-        }
 
-        return objectsInRadius;
-    }
 
-    public static List<GameObject> GetObjectsInCube(Vector3 position, Vector3 extents, Quaternion orientation, LayerMask desiredLayers)
-    {
-        Collider[] collidersInBox = Physics.OverlapBox(position, extents, Quaternion.identity, desiredLayers);
-
-        List<GameObject> objectsInBox = new List<GameObject>();
-        foreach (var collider in collidersInBox)
-        {
-            objectsInBox.Add(collider.GameObject());
-        }
-
-        return objectsInBox;
-    }
     
-    public static bool IsObjectInRange(Vector3 posA, Vector3 posB, float range)
-    {
-        // Primero hacemos punta menos cola entre la posición de este GameObject y la del foundGameObject,
-        // esto nos da la flecha que va del uno al otro,
-        Vector3 puntaMenosCola = PuntaMenosCola(posA, posB);
 
-        // Y ya con esa flecha, usamos el teorema de Pitágoras, para calcular la distancia entre este gameObject
-        // que es dueño de este script Senses y el foundGameObject.
-        float distancia = Pitagoras(puntaMenosCola);
-
-        // ya con la distancia calculada, la comparamos contra este radio que determinamos.
-        if (distancia < range)
-        {
-            // Sí está dentro del radio
-            return true;
-        }
-
-        // no está dentro del radio.
-        return false;
-    }
     
     public List<GameObject> GetAllObjectsByLayer(int layer)
     {
@@ -154,7 +88,7 @@ public class Senses : MonoBehaviour
             if (foundObject.layer != layer)
                 continue; // continue es: vete a la siguiente iteración del ciclo en donde estás.
                 
-            if (IsObjectInRange(foundObject.transform.position, transform.position, radioDeDeteccion))
+            if (Utilities.IsObjectInRange(foundObject.transform.position, transform.position, radioDeDeteccion))
             {
                 objects.Add(foundObject);
             }
@@ -197,21 +131,7 @@ public class Senses : MonoBehaviour
         return GetAllObjectsByLayer(LayerMask.NameToLayer("EnemyBullet"));
     }
 
-    // esta es la que se usa para comparar entre Tags
-    public static bool CompareString(string a, string b)
-    {
-        // si no son de la misma longitud, no pueden ser iguales
-        if (a.Length != b.Length)
-            return false;
 
-        for (int i = 0; i < a.Length; i++)
-        {
-            if (a[i] != b[i])
-                return false;
-        }
-        
-        return true;
-    }
     
     // la Layer es solo un int, entonces solo necesitas una comparación para saber qué choca con qué.
     // Principalmente se usan para la simulación física. Podemos tener hasta 32 layers porque un entero tiene 32 bits (4 bytes).
@@ -248,7 +168,7 @@ public class Senses : MonoBehaviour
     void Update()
     {
         // DetectarTodosLosGameObjects(); // esta de aquí ya no la llamamos porque es más pesada que la de abajo.
-        _foundGameObjects = GetObjectsInRadius(transform.position, radioDeDeteccion, desiredDetectionLayers);
+        _foundGameObjects = Utilities.GetObjectsInRadius(transform.position, radioDeDeteccion, desiredDetectionLayers);
     }
 
     // OnDrawGizmos Se manda a llamar cada que la pestaña de escena se actualiza. Se actualiza incluso cuando no estás en play mode.
@@ -262,7 +182,7 @@ public class Senses : MonoBehaviour
             // Después los filtramos para que solo nos dé los que sí están dentro del radio determinado.
             foreach (var foundGameObject in _foundGameObjects)
             {
-                if (IsObjectInRange(foundGameObject.transform.position, transform.position, radioDeDeteccion))
+                if (Utilities.IsObjectInRange(foundGameObject.transform.position, transform.position, radioDeDeteccion))
                 {
                     Gizmos.color = Color.green;
                     // Sí está dentro del radio

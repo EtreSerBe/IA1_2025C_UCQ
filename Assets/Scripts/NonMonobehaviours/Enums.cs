@@ -9,7 +9,8 @@ public enum ESteeringBehaviors : byte
     Seek,
     Flee,
     Pursuit, // qué valor tendría pursuit si flee=42? si a uno tú le das valor específico, pero al siguiente no, entonces es el valor siguiente de dicho valor asignado. En este caso, 43.
-    Evade
+    Evade,
+    Arrive,
 }
 
 // sirve como bits para una máscara de bits.

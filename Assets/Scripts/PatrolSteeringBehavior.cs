@@ -75,7 +75,7 @@ public class PatrolSteeringBehavior : RigidbodySteeringBehaviours
         if (other.gameObject.layer == LayerMask.NameToLayer("Enemy"))
         {
             // si me toca un enemy con Collider (no-trigger), se destruye el gameObject dueño de este script.
-            Destroy(gameObject);
+            // Destroy(gameObject);
         }
         
         Debug.Log($"El objeto: {name} chocó contra el collider (no-trigger): {other.gameObject.name}");

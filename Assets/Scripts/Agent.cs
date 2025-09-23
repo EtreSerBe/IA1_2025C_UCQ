@@ -103,7 +103,7 @@ public class Agent : MonoBehaviour
             else
             {
                 // si tiene mucha vida, que cambie a pursuit
-                _steeringBehaviors.currentBehavior = ESteeringBehaviors.Pursuit;
+                _steeringBehaviors.currentBehavior = ESteeringBehaviors.Arrive;
             }
             
             

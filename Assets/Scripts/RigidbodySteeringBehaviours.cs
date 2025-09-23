@@ -11,7 +11,19 @@ public class RigidbodySteeringBehaviours : MonoBehaviour
     // máxima fuerza que se le puede aplicar
     public float maxForce = 5.0f;
 
-    public float lookAheadTime = 2.0f;
+    // Ya no es necesaria porque lo calculamos dinámicamente.
+    // public float lookAheadTime = 2.0f;
+
+    // Radio de distancia desde el cual comenzaremos a frenar.
+    public float arriveBrakeRadius = 5.0f;
+
+    public float arriveToleranceRadius = 0.5f;
+    public float arriveSpeedTolerance = 0.5f;
+
+    // Poder activar y desactivar el Obstacle Avoidance
+    public bool useObstacleAvoidance = true;
+    public float obstacleAvoidanceDetectionRadius = 5.0f;
+    public LayerMask obstacleAvoidanceLayerMask;
     
     // Componente que maneja las fuerzas y la velocidad de nuestro agente.
     protected Rigidbody _rb;
@@ -98,6 +110,36 @@ public class RigidbodySteeringBehaviours : MonoBehaviour
         Vector3 steeringForce = -Pursuit(targetPosition);
         return steeringForce;
     }
+
+    public Vector3 Arrive(Vector3 targetPosition)
+    {
+        Vector3 steeringForce = Vector3.zero;
+        // Si no estamos dentro del radio de frenado, entonces no frenamos, hacemos seek.
+        if (!Utilities.IsObjectInRange(transform.position, targetPosition, arriveBrakeRadius))
+        {
+            return Seek(targetPosition);
+        }
+        
+        // TENÍA EL PUNTA MENOS COLA AL REVÉS!
+        Vector3 arrowToTarget = targetPosition - transform.position;
+        // distancia al objetivo
+        float distanceToTarget = arrowToTarget.magnitude;
+        // Si ya estamos muy cerca, nos detenemos completamente.
+         if (distanceToTarget <= arriveToleranceRadius && _rb.linearVelocity.magnitude <= arriveSpeedTolerance)
+        {
+            _rb.linearVelocity = Vector3.zero;
+            return Vector3.zero;
+        }
+        
+        Vector3 directionToTarget = arrowToTarget.normalized;
+        
+        // si sí estamos dentro del rango, entonces empezamos a frenar.
+        float desiredSpeed = Mathf.Lerp(0.0f, maxSpeed, distanceToTarget / arriveBrakeRadius);
+        Vector3 desiredVelocity = directionToTarget * desiredSpeed;
+
+        steeringForce = desiredVelocity - _rb.linearVelocity;
+        return steeringForce;
+    }
     
     // Update is called a fixed number of times each second. 50 by default.
     void FixedUpdate()
@@ -126,10 +168,27 @@ public class RigidbodySteeringBehaviours : MonoBehaviour
             case ESteeringBehaviors.Evade:
                 steeringForce = Evade(_targetPosition);
                 break;
+            case ESteeringBehaviors.Arrive:
+                steeringForce = Arrive(_targetPosition);
+                break;
             default:
                 throw new ArgumentOutOfRangeException();
         }
-        
+
+        if (useObstacleAvoidance)
+        {
+            // vamos a sumar las fuerzas de todos los obstáculos.
+            // entonces necesitamos detectar a los obstáculos!
+            var obstacles = Utilities.GetObjectsInRadius(transform.position, obstacleAvoidanceDetectionRadius,
+                obstacleAvoidanceLayerMask);
+            // tenemos que checar qué tanta fuerza aplica cada uno de ellos.
+            foreach (var obstacle in obstacles)
+            {
+                float distanceToObstacle = (transform.position - obstacle.transform.position).magnitude;
+                steeringForce += Flee(obstacle.transform.position) * distanceToObstacle /
+                                 obstacleAvoidanceDetectionRadius;
+            }
+        }
          
         
         // la steering force no puede ser mayor que la max steering force PERO sí puede ser menor.
@@ -159,32 +218,69 @@ public class RigidbodySteeringBehaviours : MonoBehaviour
         // Si sí hay un rigidbody del target para hacerle Pursuit of evade:
         if (_targetRb != null)
         {
-            // dibujamos el gizmo de la posición predicha.
-            Vector3 predictedPosition = PredictPosition(_targetPosition, _targetRb.linearVelocity); 
-            Gizmos.color = Color.yellow;
-            Gizmos.DrawCube(predictedPosition, Vector3.one*0.5f);   
+            Vector3 targetPosition = _targetPosition; // nos faltaba poner esta así por defecto en vez de 0.
+            
+            Vector3 steeringForce = Vector3.zero;
+            switch (currentBehavior)
+            {
+                case ESteeringBehaviors.DontMove:
+                    // no hace nada.
+                    break;
+                case ESteeringBehaviors.Seek:
+                    steeringForce = Seek(_targetPosition);
+                    break;
+                case ESteeringBehaviors.Flee:
+                    steeringForce = Flee(_targetPosition);
+                    break;
+                case ESteeringBehaviors.Pursuit:
+                {// dibujamos el gizmo de la posición predicha.
+                    Vector3 predictedPosition = PredictPosition(_targetPosition, _targetRb.linearVelocity); 
+                    Gizmos.color = Color.yellow;
+                    Gizmos.DrawCube(predictedPosition, Vector3.one*0.5f);
+                    targetPosition = predictedPosition;
+                    steeringForce = Pursuit(_targetPosition);
+                }
+                    break;
+                case ESteeringBehaviors.Evade:
+                {
+                    Vector3 predictedPosition = PredictPosition(_targetPosition, _targetRb.linearVelocity); 
+                    Gizmos.color = Color.yellow;
+                    Gizmos.DrawCube(predictedPosition, Vector3.one*0.5f);
+                    targetPosition = predictedPosition;
+                    steeringForce = Evade(_targetPosition);
+                }
+                    break;
+                case ESteeringBehaviors.Arrive:
+                    steeringForce = Arrive(_targetPosition);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
             
             // Línea desde el agente hasta la posición predicha:
             Gizmos.color = Color.yellow;
-            Gizmos.DrawLine(transform.position, predictedPosition);
+            Gizmos.DrawLine(transform.position, targetPosition);
             
-            // línea hacia la posición predicha, pero con la magnitud de nuestra maxSpeed
-            Vector3 directionToPredictedPosition = (predictedPosition - transform.position).normalized;
+            // línea hacia la posición objetivo, pero con la magnitud de nuestra maxSpeed
+            Vector3 directionToPosition = (targetPosition - transform.position).normalized;
             Gizmos.color = Color.green;
-            Gizmos.DrawLine(transform.position, transform.position + directionToPredictedPosition*maxSpeed);
+            Gizmos.DrawLine(transform.position, transform.position + directionToPosition*maxSpeed);
             
             // línea de la velocidad real a la que va este agente
             Gizmos.color = Color.red;
             Gizmos.DrawLine(transform.position, transform.position + _rb.linearVelocity);
-
             
             // Flecha de la steering force
-            Vector3 steeringForce = Pursuit(_targetPosition);
-        
             // la steering force no puede ser mayor que la max steering force PERO sí puede ser menor.
             steeringForce = Vector3.ClampMagnitude(steeringForce, maxForce);
             Gizmos.color = Color.magenta;
             Gizmos.DrawLine(transform.position, transform.position + steeringForce);
+        }
+
+        if (useObstacleAvoidance)
+        {
+            Gizmos.color = Color.red;
+            Gizmos.DrawWireSphere(transform.position, obstacleAvoidanceDetectionRadius);
         }
 
     }

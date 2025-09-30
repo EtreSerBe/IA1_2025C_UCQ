@@ -65,6 +65,13 @@ public class Pathfinding : MonoBehaviour
     [SerializeField] private int height = 5;
     [SerializeField] private int width = 5;
     
+    [SerializeField] private int originX = 1;
+    [SerializeField] private int originY = 1;
+
+    [SerializeField] private int goalX = 3;
+    [SerializeField] private int goalY = 3;
+
+    
     // Alguien que contenga todos los Nodos.
     // Esos nodos van a estar en forma de Grid/Cuadrícula, entonces podemos usar un array bidimensional.
     private Node[][] _grid;
@@ -80,7 +87,8 @@ public class Pathfinding : MonoBehaviour
             // después el eje horizontal
             for (int j = 0; j < width; j++)
             {
-                _grid[j][i] = new Node(j, i);
+                // NOTA: Entre más anidado (interno, profundo) esté el for, más a la derecha va en el corchete su índice.
+                _grid[i][j] = new Node(j, i);
             }
         }
     }
@@ -94,18 +102,86 @@ public class Pathfinding : MonoBehaviour
         // Los algoritmos de pathfinding construyen un árbol con la información del grafo.
         // Lo primero que tenemos que establecer es ¿Cuál es la raíz del árbol?
         // La raíz del árbol siempre va a ser el punto de origen del algoritmo.
-        Node root = origin; // su padre tiene que ser null
+        // Node root = origin; // su padre tiene que ser null
         
         // si esto es recursivo, ¿Qué valor es el que vamos "avanzando"?
         // la meta no va a cambiar, entonces lo único que podemos avanzar es el origen
         
-        // cuándo se detiene esta recursión? Hay dos:
+        // ¿Cuándo se detiene esta recursión? Hay dos:
         // A) cuando llegamos a la meta.
         if (origin == goal)
             return true;
         
         // B) cuando no hay camino.
-        // DepthFirstSearchRecursive()
+
+        int x = origin.X;
+        int y = origin.Y;
+        
+        // Mandamos a llamar la misma función, pero un paso más adelante en el tiempo.
+        // Primero checamos arriba:
+        if(y > 0) // si fuera 0 o menor, sería un índice en Y negativo.
+        {
+            Node upNode = _grid[y - 1][x];
+            // checar que ese nodo no tenga parent asignado.
+            if (upNode.Parent == null)
+            {
+                upNode.Parent = origin;
+                // Si eso fue true, regresamos true
+                if (DepthFirstSearchRecursive(upNode, goal))
+                {
+                    Debug.Log($"el nodo {x},{y} fue parte del camino.");
+                    return true;
+                }
+            }
+        }
+        
+        // Nodo de la derecha
+        // Primero checamos arriba:
+        if(x < width - 1)
+        {
+            Node rightNode = _grid[y][x + 1];
+            if (rightNode.Parent == null)
+            {
+                rightNode.Parent = origin;
+                if (DepthFirstSearchRecursive(rightNode, goal))
+                {
+                    Debug.Log($"el nodo {x},{y} fue parte del camino.");
+                    return true;
+                }
+            }
+        }
+
+        // nodo de la izquierda
+        if(x > 0)
+        {
+            Node leftNode = _grid[y][x - 1];
+            if (leftNode.Parent == null)
+            {
+                leftNode.Parent = origin;
+                // Si eso fue true, regresamos true
+                if (DepthFirstSearchRecursive(leftNode, goal))
+                {
+                    Debug.Log($"el nodo {x},{y} fue parte del camino.");
+                    return true;
+                }
+            }
+        }
+        
+        // Nodo de abajo
+        if(y < height - 1)
+        {
+            Node downNode = _grid[y + 1][x];
+            if (downNode.Parent == null)
+            {
+                downNode.Parent = origin;
+                // Si eso fue true, regresamos true
+                if (DepthFirstSearchRecursive(downNode, goal))
+                {
+                    Debug.Log($"el nodo {x},{y} fue parte del camino.");
+                    return true;
+                }
+            }
+        }
 
         // si se acabó la recursión y nunca llegaste a la meta, es que no hay camino.
         return false;
@@ -136,6 +212,21 @@ public class Pathfinding : MonoBehaviour
         }
         
         // Todo lo que se puede hacer iterativo se puede hacer recursivo y viceversa.
+
+        // Inicializamos nuestra cuadrícula antes de mandar a llamar cualquier algoritmo de pathfinding.
+        InitializeGrid();
+
+        // él es su propio parent, de lo contrario los otros nodos lo toman como que no ha sido visitado y lo usan 
+        // para el pathfinding.
+        _grid[originY][originX].Parent = _grid[originY][originX];
+        if (DepthFirstSearchRecursive(_grid[originY][originX], _grid[goalY][goalX]))
+        {
+            Debug.Log($"Sí se encontró camino desde {originX},{originY}, hasta {goalX},{goalY}");
+        }
+        else
+        {
+            Debug.Log($"No se encontró camino desde {originX},{originY}, hasta {goalX},{goalY}");
+        }
     }
 
     // Update is called once per frame

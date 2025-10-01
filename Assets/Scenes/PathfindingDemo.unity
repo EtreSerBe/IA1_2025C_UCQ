@@ -275,6 +275,7 @@ MonoBehaviour:
   originY: 1
   goalX: 3
   goalY: 3
+  walkableProbability: 0.607
 --- !u!4 &1115821419
 Transform:
   m_ObjectHideFlags: 0
@@ -284,7 +285,7 @@ Transform:
   m_GameObject: {fileID: 1115821417}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 3.32821, y: 0, z: 3.10051}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

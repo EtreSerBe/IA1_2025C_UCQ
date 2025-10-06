@@ -272,8 +272,6 @@ public class Pathfinding : MonoBehaviour
             openList.Pop();
         }
         
-        // commit a revertir.
-        
         // necesitamos revisar por cuál de las condiciones se rompió el while.
         if (current == goal)
             return true; // si sí se llegó a la meta, sí hubo un camino.

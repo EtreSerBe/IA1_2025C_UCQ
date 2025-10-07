@@ -227,11 +227,15 @@ public class Pathfinding : MonoBehaviour
         
         // mientras nuestro nodo actual no sea nuestro nodo meta, Y mientras todavía haya nodos por explorar,
         // entonces le seguimos.
-        while (current != goal && openList.Count > 0)
+        while (openList.Count > 0)
         {
             // revisar el del tope de la pila, SIN SACARLO, porque esto es como una pila de llamadas, no se termina
             // de procesar ese nodo hasta que se terminen de procesar todos los que irían encima de él en la pila de llamadas.
             current = openList.Peek();
+
+            // lo checamos aquí para no hacer el paso extra de que Goal visita a alguno de sus vecinos.
+            if (current == goal)
+                return true; // si sí se llegó a la meta, sí hubo un camino.
             
             // metemos elementos en la pila de abiertos.
             // Metemos nodos, que sean vecinos de current (arriba, abajo, izquierda, derecha),
@@ -272,15 +276,31 @@ public class Pathfinding : MonoBehaviour
             openList.Pop();
         }
         
-        // necesitamos revisar por cuál de las condiciones se rompió el while.
-        if (current == goal)
-            return true; // si sí se llegó a la meta, sí hubo un camino.
         
         // si no, pos no.
         return false;
     }
 
-    
+    // ESTA ES LA QUE TIENEN QUE HACER DE TAREA.
+    // Usen la Queue https://learn.microsoft.com/es-es/dotnet/api/system.collections.generic.queue-1?view=net-8.0
+    private bool BreadthFirstSearch(Node origin, Node goal)
+    {
+        // Nodo origen es su propio padre.
+        
+        // current inicia siendo origin.
+        
+        // lista abierta.
+        
+        // lista cerrada. Los nodos que ya están en la lista cerrada ya nunca se necesitan tocar, visitar, etc en ninguno de los
+        // algoritmos de pathfinding.
+        // Hash (casi) te garantiza tiempos de búsqueda, inserción y borrado de O(1), tiempo constante en el caso promedio.
+        // Lo malo en performance de los hashes es iterarlos, porque no guardan realmente un orden.
+        HashSet<Node> closedList = new HashSet<Node>();
+        
+
+        
+        return false; // si no se encontró camino.
+    }
     
     
     // recursivo VS iterativo

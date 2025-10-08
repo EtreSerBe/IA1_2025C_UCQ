@@ -303,6 +303,39 @@ public class Pathfinding : MonoBehaviour
     }
     
     
+    private bool BestFirstSearch(Node origin, Node goal)
+    {
+        // Nodo origen es su propio padre.
+        
+        // current inicia siendo origin.
+        
+        // lista abierta. Que es una fila de prioridad (PriorityQueue)
+        // PriorityQueue
+        
+        // lista cerrada. Los nodos que ya están en la lista cerrada ya nunca se necesitan tocar, visitar, etc en ninguno de los
+        // algoritmos de pathfinding.
+        // Hash (casi) te garantiza tiempos de búsqueda, inserción y borrado de O(1), tiempo constante en el caso promedio.
+        // Lo malo en performance de los hashes es iterarlos, porque no guardan realmente un orden.
+        HashSet<Node> closedList = new HashSet<Node>();
+
+        // while () // mientras todavía haya elementos en la lista abierta.
+        {
+            // tomamos el del frente
+            
+            // lo metemos a la lista cerrada
+            
+            // checamos si ya llegamos a la meta.
+                // si ya llegamos entonces retornamos true.
+                
+            // si no hemos llegado, intentamos meter a cada uno de los vecinos de este nodo a la lista abierta.
+            // Lo mismo, excepto que vamos a tomar en cuenta la heurística para meterlos (ordenarlos) en la lista abierta.
+        }
+
+        
+        return false; // si no se encontró camino.
+    }
+    
+    
     // recursivo VS iterativo
     // Recursivo es que se manda a llamar a sí mismo dentro del cuerpo de la función.
     public int RestaHastaCero(int value)

@@ -58,6 +58,11 @@ public class PatrolSteeringBehavior : RigidbodySteeringBehaviours
 
     private void OnTriggerEnter(Collider other)
     {
+        if(other.gameObject != this.gameObject)
+            // entonces no chocaron consigo mismos.
+        
+        // poner en el script de la bala que tenga una referencia al gameObject que la disparó.
+        
         if (other.gameObject.layer == LayerMask.NameToLayer("Waypoint"))
         {
             // si las posiciones son iguales, entonces ya llegamos.

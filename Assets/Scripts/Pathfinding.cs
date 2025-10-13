@@ -1,5 +1,7 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using Unity.Mathematics;
 using Unity.VisualScripting;
 using UnityEngine;
 using Random = UnityEngine.Random;
@@ -84,12 +86,23 @@ public class Pathfinding : MonoBehaviour
     [SerializeField] private int goalX = 3;
     [SerializeField] private int goalY = 3;
 
+    [SerializeField] private float cycleSpeed = 0.5f;
+    
     [Range(0.0f, 1.0f)]
     [SerializeField] private float walkableProbability = 0.5f;
     
     // Alguien que contenga todos los Nodos.
     // Esos nodos van a estar en forma de Grid/Cuadrícula, entonces podemos usar un array bidimensional.
     private Node[][] _grid;
+    
+    // lista cerrada. Los nodos que ya están en la lista cerrada ya nunca se necesitan tocar, visitar, etc en ninguno de los
+    // algoritmos de pathfinding.
+    // Hash (casi) te garantiza tiempos de búsqueda, inserción y borrado de O(1), tiempo constante en el caso promedio.
+    // Lo malo en performance de los hashes es iterarlos, porque no guardan realmente un orden.
+    private HashSet<Node> _closedList = new HashSet<Node>();
+    
+    
+    
     
     // Algoritmo para inicializar el grid de width*height
     void InitializeGrid()
@@ -274,6 +287,7 @@ public class Pathfinding : MonoBehaviour
             
             // esto de aquí hace que su antecesor continue justo donde se había quedado.
             openList.Pop();
+            _closedList.Add(current);
         }
         
         
@@ -297,8 +311,14 @@ public class Pathfinding : MonoBehaviour
         // Lo malo en performance de los hashes es iterarlos, porque no guardan realmente un orden.
         HashSet<Node> closedList = new HashSet<Node>();
         
+        // Ciclo while, básicamente igual al de Best first search pero sin las prioridades.
+        {
+            // checar si ya llegaron a la meta
+            
+            // si no, intentar meter a todos los vecinos.
+        }
 
-        
+
         return false; // si no se encontró camino.
     }
     
@@ -306,33 +326,144 @@ public class Pathfinding : MonoBehaviour
     private bool BestFirstSearch(Node origin, Node goal)
     {
         // Nodo origen es su propio padre.
-        
-        // current inicia siendo origin.
+        origin.Parent = origin;
         
         // lista abierta. Que es una fila de prioridad (PriorityQueue)
-        // PriorityQueue
+        PriorityQueue<Node, float> openPriorityQueue = new PriorityQueue<Node, float>();
         
-        // lista cerrada. Los nodos que ya están en la lista cerrada ya nunca se necesitan tocar, visitar, etc en ninguno de los
-        // algoritmos de pathfinding.
-        // Hash (casi) te garantiza tiempos de búsqueda, inserción y borrado de O(1), tiempo constante en el caso promedio.
-        // Lo malo en performance de los hashes es iterarlos, porque no guardan realmente un orden.
-        HashSet<Node> closedList = new HashSet<Node>();
+        // Hay que meter al origin a la lista abierta, para que current inicie siendo origin.
+        openPriorityQueue.Enqueue(origin, 0.0f);
+        
 
-        // while () // mientras todavía haya elementos en la lista abierta.
+
+        Node current = null;
+        while (!openPriorityQueue.IsEmpty()) // mientras todavía haya elementos en la lista abierta.
         {
-            // tomamos el del frente
-            
+            // tomamos el del frente y ese se vuelve current
+            current = openPriorityQueue.Dequeue();
+
             // lo metemos a la lista cerrada
-            
+            _closedList.Add(current);
+
             // checamos si ya llegamos a la meta.
+            if (current == goal)
+            {
+                Debug.Log($"Camino encontrado desde {origin.X}, {origin.Y} hasta {goal.X}, {goal.Y}" );
                 // si ya llegamos entonces retornamos true.
-                
+                return true;
+            }
+
             // si no hemos llegado, intentamos meter a cada uno de los vecinos de este nodo a la lista abierta.
             // Lo mismo, excepto que vamos a tomar en cuenta la heurística para meterlos (ordenarlos) en la lista abierta.
+            int x = current.X;
+            int y = current.Y;
+            // checamos nodo de arriba (Nos dice que está dentro de la cuadrícula, que no tiene parent y que sí
+            // es caminable).
+            Node upNode = CheckNode(current, 0, (int)EDirections.Up);
+            if (upNode != null)
+            {
+                // Necesitamos calcular la prioridad antes de meterlo a la lista abierta.
+                // En este caso es la distancia euclidiana entre dicho nodo y la meta.
+                float distance = math.sqrt(math.square(upNode.X - goal.X) + math.square(upNode.Y - goal.Y));
+                openPriorityQueue.Enqueue(upNode, distance);
+            }
+            
+            Node rightNode = CheckNode(current, (int)EDirections.Right, 0);
+            if (rightNode != null)
+            {
+                float distance = math.sqrt(math.square(rightNode.X - goal.X) + math.square(rightNode.Y - goal.Y));
+                openPriorityQueue.Enqueue(rightNode, distance);
+            }
+            
+            Node downNode = CheckNode(current, 0, (int)EDirections.Down);
+            if (downNode != null)
+            {
+                float distance = math.sqrt(math.square(downNode.X - goal.X) + math.square(downNode.Y - goal.Y));
+                openPriorityQueue.Enqueue(downNode, distance);
+            }
+            
+            Node leftNode = CheckNode(current, (int)EDirections.Left, 0);
+            if (leftNode != null)
+            {
+                float distance = math.sqrt(math.square(leftNode.X - goal.X) + math.square(leftNode.Y - goal.Y));
+                openPriorityQueue.Enqueue(leftNode, distance);
+            }
         }
-
         
         return false; // si no se encontró camino.
+    }
+    
+    
+    private IEnumerator BestFirstSearchCoroutine(Node origin, Node goal)
+    {
+        // Nodo origen es su propio padre.
+        origin.Parent = origin;
+        
+        // lista abierta. Que es una fila de prioridad (PriorityQueue)
+        PriorityQueue<Node, float> openPriorityQueue = new PriorityQueue<Node, float>();
+        
+        // Hay que meter al origin a la lista abierta, para que current inicie siendo origin.
+        openPriorityQueue.Enqueue(origin, 0.0f);
+        
+
+
+        Node current = null;
+        while (!openPriorityQueue.IsEmpty()) // mientras todavía haya elementos en la lista abierta.
+        {
+            yield return new WaitForSeconds(cycleSpeed);
+            
+            // tomamos el del frente y ese se vuelve current
+            current = openPriorityQueue.Dequeue();
+
+            // lo metemos a la lista cerrada
+            _closedList.Add(current);
+
+            // checamos si ya llegamos a la meta.
+            if (current == goal)
+            {
+                Debug.Log($"Camino encontrado desde {origin.X}, {origin.Y} hasta {goal.X}, {goal.Y}" );
+                // si ya llegamos entonces retornamos true.
+                yield break;
+            }
+
+            // si no hemos llegado, intentamos meter a cada uno de los vecinos de este nodo a la lista abierta.
+            // Lo mismo, excepto que vamos a tomar en cuenta la heurística para meterlos (ordenarlos) en la lista abierta.
+            int x = current.X;
+            int y = current.Y;
+            // checamos nodo de arriba (Nos dice que está dentro de la cuadrícula, que no tiene parent y que sí
+            // es caminable).
+            Node upNode = CheckNode(current, 0, (int)EDirections.Up);
+            if (upNode != null)
+            {
+                // Necesitamos calcular la prioridad antes de meterlo a la lista abierta.
+                // En este caso es la distancia euclidiana entre dicho nodo y la meta.
+                float distance = math.sqrt(math.square(upNode.X - goal.X) + math.square(upNode.Y - goal.Y));
+                openPriorityQueue.Enqueue(upNode, distance);
+            }
+            
+            Node rightNode = CheckNode(current, (int)EDirections.Right, 0);
+            if (rightNode != null)
+            {
+                float distance = math.sqrt(math.square(rightNode.X - goal.X) + math.square(rightNode.Y - goal.Y));
+                openPriorityQueue.Enqueue(rightNode, distance);
+            }
+            
+            Node downNode = CheckNode(current, 0, (int)EDirections.Down);
+            if (downNode != null)
+            {
+                float distance = math.sqrt(math.square(downNode.X - goal.X) + math.square(downNode.Y - goal.Y));
+                openPriorityQueue.Enqueue(downNode, distance);
+            }
+            
+            Node leftNode = CheckNode(current, (int)EDirections.Left, 0);
+            if (leftNode != null)
+            {
+                float distance = math.sqrt(math.square(leftNode.X - goal.X) + math.square(leftNode.Y - goal.Y));
+                openPriorityQueue.Enqueue(leftNode, distance);
+            }
+        }
+        
+        yield break; // si no se encontró camino.
     }
     
     
@@ -380,14 +511,20 @@ public class Pathfinding : MonoBehaviour
         // para el pathfinding.
         _grid[originY][originX].Parent = _grid[originY][originX];
         //if (DepthFirstSearchRecursive(_grid[originY][originX], _grid[goalY][goalX]))
-        if (DepthFirstSearchIterative(_grid[originY][originX], _grid[goalY][goalX]))
-        {
-            Debug.Log($"Sí se encontró camino desde {originX},{originY}, hasta {goalX},{goalY}");
-        }
-        else
-        {
-            Debug.Log($"No se encontró camino desde {originX},{originY}, hasta {goalX},{goalY}");
-        }
+        // if (DepthFirstSearchIterative(_grid[originY][originX], _grid[goalY][goalX]))
+        // if (BestFirstSearch(_grid[originY][originX], _grid[goalY][goalX]))
+        // {
+        //     Debug.Log($"Sí se encontró camino desde {originX},{originY}, hasta {goalX},{goalY}");
+        // }
+        // else
+        // {
+        //     Debug.Log($"No se encontró camino desde {originX},{originY}, hasta {goalX},{goalY}");
+        // }
+        
+        // VERSIONES CORRUTINA
+        StartCoroutine(DepthFirstSearchIterativeCoroutine(_grid[originY][originX], _grid[goalY][goalX]));
+
+        // StartCoroutine(BestFirstSearchCoroutine(_grid[originY][originX], _grid[goalY][goalX]));
     }
 
     // Update is called once per frame
@@ -424,7 +561,14 @@ public class Pathfinding : MonoBehaviour
 
                 if (_grid[y][x].Parent != null)
                 {
-                    Gizmos.color = Color.magenta;
+                    if (_closedList.Contains(_grid[y][x]))
+                    {
+                        Gizmos.color = Color.red;
+                    }
+                    else
+                    {
+                        Gizmos.color = Color.navyBlue;
+                    }
                     // entonces que nos dibuje una línea desde el parent hasta este nodo.
                     Gizmos.DrawLine(new Vector3(_grid[y][x].Parent.X, -_grid[y][x].Parent.Y, 1.0f), new Vector3(x, -y, 1.0f));
                     // le ponemos una esfera chiquita al nodo hijo, para diferenciar quién es padre y quien es hijo.
@@ -440,4 +584,91 @@ public class Pathfinding : MonoBehaviour
         Gizmos.DrawCube(new Vector3(goalX, -goalY, 0.0f), Vector3.one * 0.9f);
         
     }
+    
+    
+    private IEnumerator DepthFirstSearchIterativeCoroutine(Node origin, Node goal)
+    {
+        // Ponerle al nodo raíz que él es su propio padre:
+        origin.Parent = origin; // esto ya lo hace SetupGrid(); Lo dejo por pura claridad.
+        
+        // Nodo actual, que representa al parámetro Origin en la versión recursiva, 
+        // es el que representa el "avance" en el algoritmo.
+        Node current = origin;
+
+        // Necesitamos un registro de cuáles nodos ya se han "conocido" o "abierto" en el algoritmo.
+        // Aquí necesitamos memoria, algo que almacene cuáles nodos ya conocimos, para diferenciarlos de cuáles no.
+        Stack<Node> openList = new Stack<Node>();
+        // lista abierta son los nodos que se sabe que existen, pero todavía visitan.
+        
+        // los nodos "visitados" o explorados, o expandidos, se les conoce como "Cerrados"
+        // Si cerraste todos los nodos, y no llegaste a la meta, quiere decir que no hay camino.
+        // List<Node> closedList = new List<Node>();
+        
+        // La lista abierta empieza con el origen dentro
+        openList.Push(origin);
+        
+        // mientras nuestro nodo actual no sea nuestro nodo meta, Y mientras todavía haya nodos por explorar,
+        // entonces le seguimos.
+        while (openList.Count > 0)
+        {
+            yield return new WaitForSeconds(cycleSpeed);
+            
+            // revisar el del tope de la pila, SIN SACARLO, porque esto es como una pila de llamadas, no se termina
+            // de procesar ese nodo hasta que se terminen de procesar todos los que irían encima de él en la pila de llamadas.
+            current = openList.Peek();
+
+            // lo checamos aquí para no hacer el paso extra de que Goal visita a alguno de sus vecinos.
+            if (current == goal)
+                yield break; // si sí se llegó a la meta, sí hubo un camino.
+            
+            // metemos elementos en la pila de abiertos.
+            // Metemos nodos, que sean vecinos de current (arriba, abajo, izquierda, derecha),
+            // y que su parent sea null, y él sea caminable.
+
+            int x = current.X;
+            int y = current.Y;
+            // checamos nodo de arriba
+            Node upNode = CheckNode(current, 0, (int)EDirections.Up);
+            if (upNode != null)
+            {
+                openList.Push(upNode);
+                continue;
+            }
+
+            Node rightNode = CheckNode(current, (int)EDirections.Right, 0);
+            if (rightNode != null)
+            {
+                openList.Push(rightNode);
+                continue;
+            }
+            
+            Node downNode = CheckNode(current, 0, (int)EDirections.Down);
+            if (downNode != null)
+            {
+                openList.Push(downNode);
+                continue;
+            }
+            
+            Node leftNode = CheckNode(current, (int)EDirections.Left, 0);
+            if (leftNode != null)
+            {
+                openList.Push(leftNode);
+                continue;
+            }
+            
+            // esto de aquí hace que su antecesor continue justo donde se había quedado.
+            openList.Pop();
+            _closedList.Add(current);
+        }
+        
+        
+        // si no, pos no.
+        yield break;
+    }
+    
+    
+    
+    
+    
+    
 }

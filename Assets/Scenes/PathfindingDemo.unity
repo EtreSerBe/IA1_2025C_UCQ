@@ -269,13 +269,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8ba636c77e48463408808d4ab09fbba2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  height: 5
-  width: 5
+  height: 15
+  width: 15
   originX: 1
   originY: 1
-  goalX: 3
-  goalY: 3
-  walkableProbability: 0.607
+  goalX: 13
+  goalY: 13
+  cycleSpeed: 0.1
+  walkableProbability: 0.756
 --- !u!4 &1115821419
 Transform:
   m_ObjectHideFlags: 0

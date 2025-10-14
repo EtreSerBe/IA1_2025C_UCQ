@@ -276,7 +276,12 @@ MonoBehaviour:
   goalX: 13
   goalY: 13
   cycleSpeed: 0.1
-  walkableProbability: 0.756
+  walkableProbability: 0.929
+  normalTileCost: 1
+  fireTileCost: 20
+  forestTileCost: 2
+  sandTileCost: 3
+  gizmosSphereSize: 0.2
 --- !u!4 &1115821419
 Transform:
   m_ObjectHideFlags: 0

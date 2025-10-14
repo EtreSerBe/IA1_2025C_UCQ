@@ -18,6 +18,15 @@ public enum EDirections : int
     Down = 1
 }
 
+public enum ETileType
+{
+    Normal,
+    Fire,
+    Forest,
+    Sand,
+    COUNT,
+}
+
 public class Node
 {
     public Node()
@@ -25,11 +34,18 @@ public class Node
         Parent = null;
     }
         
-    public Node(int x, int y, bool isWalkable = true)
+    public Node(int x, int y, ETileType tileType, float terrainCost, bool isWalkable = true)
     {
         X = x;
         Y = y;
-        
+
+        TerrainCost = terrainCost;
+        GCost = 0;
+        TotalCost = 0;
+        HCost = float.PositiveInfinity;
+        // me había faltado asignar el tileType
+        TileType = tileType;
+
         // Hay que tener la certeza de que inicializa en null, para hacer el pathfinding bien.
         Parent = null;
         Walkable = isWalkable;
@@ -40,8 +56,21 @@ public class Node
 
     public int Y { get; }
 
-    public bool Walkable = true; 
+    public bool Walkable = true;
 
+    // costo propio del nodo
+    public float TerrainCost;
+
+    // costo total del parent (parent.FCost)
+    public float GCost; 
+    
+    // Costo de la heurística. Por ejemplo la distancia en Best-first search.
+    public float HCost;
+    
+    public float TotalCost; // costo propio más el del parent. También llamado fCost
+
+    public ETileType TileType = ETileType.Normal;
+    
     // aristas que nos dicen a qué nodos puede visitar este nodo.
     // private List<Edge> edges = new List<Edge>();
     /*
@@ -75,6 +104,8 @@ public class Node
 // }
 
 
+
+
 public class Pathfinding : MonoBehaviour
 {
     [SerializeField] private int height = 5;
@@ -90,6 +121,15 @@ public class Pathfinding : MonoBehaviour
     
     [Range(0.0f, 1.0f)]
     [SerializeField] private float walkableProbability = 0.5f;
+
+
+    [SerializeField] private int normalTileCost = 1;
+    [SerializeField] private int fireTileCost = 5;
+    [SerializeField] private int forestTileCost = 2;
+    [SerializeField] private int sandTileCost = 3;
+
+    [Range(0.0f, 1.0f)]
+    [SerializeField] private float gizmosSphereSize = 0.2f;
     
     // Alguien que contenga todos los Nodos.
     // Esos nodos van a estar en forma de Grid/Cuadrícula, entonces podemos usar un array bidimensional.
@@ -100,7 +140,8 @@ public class Pathfinding : MonoBehaviour
     // Hash (casi) te garantiza tiempos de búsqueda, inserción y borrado de O(1), tiempo constante en el caso promedio.
     // Lo malo en performance de los hashes es iterarlos, porque no guardan realmente un orden.
     private HashSet<Node> _closedList = new HashSet<Node>();
-    
+
+    private List<Node> _pathToGoal = new List<Node>();
     
     
     
@@ -116,9 +157,30 @@ public class Pathfinding : MonoBehaviour
             for (int j = 0; j < width; j++)
             {
                 bool isWalkable = Random.value < walkableProbability;
+
+                ETileType tileType = (ETileType)Random.Range(0, (int)ETileType.COUNT );
+                float fCost = 1;
+                switch (tileType)
+                {
+                    case ETileType.Normal:
+                        fCost = normalTileCost; 
+                        break;
+                    case ETileType.Fire:
+                        fCost = fireTileCost; 
+                        break;
+                    case ETileType.Forest:
+                        fCost = forestTileCost;
+                        break;
+                    case ETileType.Sand:
+                        fCost = sandTileCost; 
+                        break;
+                    case ETileType.COUNT:
+                    default:
+                        throw new ArgumentOutOfRangeException(nameof(tileType), tileType, null);
+                }
                 
                 // NOTA: Entre más anidado (interno, profundo) esté el for, más a la derecha va en el corchete su índice.
-                _grid[i][j] = new Node(j, i, isWalkable);
+                _grid[i][j] = new Node(j, i, tileType, fCost, isWalkable);
             }
         }
     }
@@ -197,8 +259,7 @@ public class Pathfinding : MonoBehaviour
         return false;
     }
 
-    
-    private Node CheckNode(Node current, int xOffset, int yOffset)
+    private Node CheckValidNode(Node current, int xOffset, int yOffset)
     {
         if (current.Y + yOffset >= height
             || current.Y + yOffset < 0
@@ -207,6 +268,19 @@ public class Pathfinding : MonoBehaviour
             return null; // si se sale del grid, entonces no es nodo válido.
         
         Node neighborNode = _grid[current.Y + yOffset][current.X + xOffset];
+
+        if (!neighborNode.Walkable)
+            return null;
+        
+        return neighborNode;
+    }
+    
+    private Node CheckNode(Node current, int xOffset, int yOffset)
+    {
+        Node neighborNode = CheckValidNode(current, xOffset, yOffset);
+        if (neighborNode == null)
+            return null;
+        
         if (neighborNode.Parent == null && neighborNode.Walkable) // tiene que ser un nodo no-visitado Y que sea caminable.
         {
             neighborNode.Parent = current;
@@ -214,6 +288,37 @@ public class Pathfinding : MonoBehaviour
             return neighborNode;
         }
 
+        return null;
+    }
+    
+    private Node CheckNodeDjisktra(Node current, int xOffset, int yOffset)
+    {
+        Node neighborNode = CheckValidNode(current, xOffset, yOffset);
+        if (neighborNode == null)
+            return null;
+
+        if (neighborNode.Parent == null) // tiene que ser un nodo no-visitado Y que sea caminable.
+        {
+            neighborNode.Parent = current;
+            neighborNode.TotalCost = neighborNode.TerrainCost + neighborNode.Parent.TotalCost;
+            // Si eso fue true, regresamos true
+            return neighborNode;
+        }
+        // si sí tiene parent, tenemos que checar si el current node sería un mejor parent
+        // que el que tiene ahorita.
+        if (current.TotalCost < neighborNode.Parent.TotalCost)
+        {
+            Debug.Log($"Se cambió el padre del nodo X{neighborNode.X},Y{neighborNode.Y} que era " +
+                      $"X{neighborNode.Parent.X},Y{neighborNode.Parent.Y} con costo {neighborNode.Parent.TotalCost}" +
+                      $" y ahora es X{current.X},Y{current.Y} con costo {current.TotalCost}");
+            
+            // si sí es menor, entonces current se vuelve el nuevo padre.
+            neighborNode.Parent = current;
+            neighborNode.TotalCost = neighborNode.TerrainCost + neighborNode.Parent.TotalCost;
+            return neighborNode;
+        }
+            
+        
         return null;
     }
 
@@ -393,8 +498,7 @@ public class Pathfinding : MonoBehaviour
         return false; // si no se encontró camino.
     }
     
-    
-    private IEnumerator BestFirstSearchCoroutine(Node origin, Node goal)
+    private bool DjikstraSearch(Node origin, Node goal)
     {
         // Nodo origen es su propio padre.
         origin.Parent = origin;
@@ -406,12 +510,9 @@ public class Pathfinding : MonoBehaviour
         openPriorityQueue.Enqueue(origin, 0.0f);
         
 
-
         Node current = null;
         while (!openPriorityQueue.IsEmpty()) // mientras todavía haya elementos en la lista abierta.
         {
-            yield return new WaitForSeconds(cycleSpeed);
-            
             // tomamos el del frente y ese se vuelve current
             current = openPriorityQueue.Dequeue();
 
@@ -423,7 +524,7 @@ public class Pathfinding : MonoBehaviour
             {
                 Debug.Log($"Camino encontrado desde {origin.X}, {origin.Y} hasta {goal.X}, {goal.Y}" );
                 // si ya llegamos entonces retornamos true.
-                yield break;
+                return true;
             }
 
             // si no hemos llegado, intentamos meter a cada uno de los vecinos de este nodo a la lista abierta.
@@ -432,39 +533,40 @@ public class Pathfinding : MonoBehaviour
             int y = current.Y;
             // checamos nodo de arriba (Nos dice que está dentro de la cuadrícula, que no tiene parent y que sí
             // es caminable).
-            Node upNode = CheckNode(current, 0, (int)EDirections.Up);
+            Node upNode = CheckNodeDjisktra(current, 0, (int)EDirections.Up);
             if (upNode != null)
             {
-                // Necesitamos calcular la prioridad antes de meterlo a la lista abierta.
-                // En este caso es la distancia euclidiana entre dicho nodo y la meta.
-                float distance = math.sqrt(math.square(upNode.X - goal.X) + math.square(upNode.Y - goal.Y));
-                openPriorityQueue.Enqueue(upNode, distance);
+                // Costo propio del nodo + costo total de su parent.
+                float totalCost = upNode.TerrainCost + upNode.Parent.TotalCost;
+                openPriorityQueue.Enqueue(upNode, totalCost);
             }
             
-            Node rightNode = CheckNode(current, (int)EDirections.Right, 0);
+            Node rightNode = CheckNodeDjisktra(current, (int)EDirections.Right, 0);
             if (rightNode != null)
             {
-                float distance = math.sqrt(math.square(rightNode.X - goal.X) + math.square(rightNode.Y - goal.Y));
-                openPriorityQueue.Enqueue(rightNode, distance);
+                float totalCost = rightNode.TerrainCost + rightNode.Parent.TotalCost;
+                openPriorityQueue.Enqueue(rightNode, totalCost);
             }
             
-            Node downNode = CheckNode(current, 0, (int)EDirections.Down);
+            Node downNode = CheckNodeDjisktra(current, 0, (int)EDirections.Down);
             if (downNode != null)
             {
-                float distance = math.sqrt(math.square(downNode.X - goal.X) + math.square(downNode.Y - goal.Y));
-                openPriorityQueue.Enqueue(downNode, distance);
+                float totalCost = downNode.TerrainCost + downNode.Parent.TotalCost;
+                openPriorityQueue.Enqueue(downNode, totalCost);
             }
             
-            Node leftNode = CheckNode(current, (int)EDirections.Left, 0);
+            Node leftNode = CheckNodeDjisktra(current, (int)EDirections.Left, 0);
             if (leftNode != null)
             {
-                float distance = math.sqrt(math.square(leftNode.X - goal.X) + math.square(leftNode.Y - goal.Y));
-                openPriorityQueue.Enqueue(leftNode, distance);
+                float totalCost = leftNode.TerrainCost + leftNode.Parent.TotalCost;
+                openPriorityQueue.Enqueue(leftNode, totalCost);
             }
         }
         
-        yield break; // si no se encontró camino.
+        return false; // si no se encontró camino.
     }
+    
+    
     
     
     // recursivo VS iterativo
@@ -510,19 +612,29 @@ public class Pathfinding : MonoBehaviour
         // él es su propio parent, de lo contrario los otros nodos lo toman como que no ha sido visitado y lo usan 
         // para el pathfinding.
         _grid[originY][originX].Parent = _grid[originY][originX];
-        //if (DepthFirstSearchRecursive(_grid[originY][originX], _grid[goalY][goalX]))
-        // if (DepthFirstSearchIterative(_grid[originY][originX], _grid[goalY][goalX]))
-        // if (BestFirstSearch(_grid[originY][originX], _grid[goalY][goalX]))
-        // {
-        //     Debug.Log($"Sí se encontró camino desde {originX},{originY}, hasta {goalX},{goalY}");
-        // }
-        // else
-        // {
-        //     Debug.Log($"No se encontró camino desde {originX},{originY}, hasta {goalX},{goalY}");
-        // }
+        // if (DepthFirstSearchRecursive(_grid[originY][originX], _grid[goalY][goalX]))
+         // if (DepthFirstSearchIterative(_grid[originY][originX], _grid[goalY][goalX]))
+         //if (BestFirstSearch(_grid[originY][originX], _grid[goalY][goalX]))
+         if (DjikstraSearch(_grid[originY][originX], _grid[goalY][goalX]))
+         {
+             Debug.Log($"Sí se encontró camino desde {originX},{originY}, hasta {goalX},{goalY}");
+             // iterar desde la meta usando el parent hasta regresar a la raíz (el nodo que se tiene a sí mismo como parent).
+             Node current = _grid[goalY][goalX];
+             while (current.Parent != current)
+             {
+                 Debug.Log($"El nodo: X{current.X}, Y{current.Y} fue parte de la ruta.");
+                 _pathToGoal.Add(current);
+                 current = current.Parent; // nos movemos al parent del actual para regresar en el árbol.
+             }
+             Debug.Log($"El nodo: X{current.X}, Y{current.Y} fue parte de la ruta.");
+         }
+         else
+         {
+             Debug.Log($"No se encontró camino desde {originX},{originY}, hasta {goalX},{goalY}");
+         }
         
         // VERSIONES CORRUTINA
-        StartCoroutine(DepthFirstSearchIterativeCoroutine(_grid[originY][originX], _grid[goalY][goalX]));
+        // StartCoroutine(DepthFirstSearchIterativeCoroutine(_grid[originY][originX], _grid[goalY][goalX]));
 
         // StartCoroutine(BestFirstSearchCoroutine(_grid[originY][originX], _grid[goalY][goalX]));
     }
@@ -550,7 +662,24 @@ public class Pathfinding : MonoBehaviour
                 // Blanco para los caminables, y magenta para los no caminables.
                 if (_grid[y][x].Walkable)
                 {
-                    Gizmos.color = Color.white;
+                    switch (_grid[y][x].TileType)
+                    {
+                        case ETileType.Normal:
+                            Gizmos.color = Color.white;
+                            break;
+                        case ETileType.Fire:
+                            Gizmos.color = Color.darkRed;
+                            break;
+                        case ETileType.Forest:
+                            Gizmos.color = Color.forestGreen;
+                            break;
+                        case ETileType.Sand:
+                            Gizmos.color = Color.sandyBrown;
+                            break;
+                        case ETileType.COUNT:
+                        default:
+                            throw new ArgumentOutOfRangeException(nameof(ETileType), _grid[y][x].TileType, null);
+                    }
                 }
                 else
                 {
@@ -561,9 +690,13 @@ public class Pathfinding : MonoBehaviour
 
                 if (_grid[y][x].Parent != null)
                 {
-                    if (_closedList.Contains(_grid[y][x]))
+                    if (_pathToGoal.Contains(_grid[y][x]))
                     {
                         Gizmos.color = Color.red;
+                    }
+                    else if (_closedList.Contains(_grid[y][x]))
+                    {
+                        Gizmos.color = Color.black;
                     }
                     else
                     {
@@ -572,15 +705,15 @@ public class Pathfinding : MonoBehaviour
                     // entonces que nos dibuje una línea desde el parent hasta este nodo.
                     Gizmos.DrawLine(new Vector3(_grid[y][x].Parent.X, -_grid[y][x].Parent.Y, 1.0f), new Vector3(x, -y, 1.0f));
                     // le ponemos una esfera chiquita al nodo hijo, para diferenciar quién es padre y quien es hijo.
-                    Gizmos.DrawSphere(new Vector3(x, -y, 1.0f), 0.25f);
+                    Gizmos.DrawSphere(new Vector3(x, -y, 1.0f), gizmosSphereSize);
                 }
             }
         }
         
-        Gizmos.color = Color.green;
+        Gizmos.color = Color.darkCyan;
         Gizmos.DrawCube(new Vector3(originX, -originY, 0.0f), Vector3.one * 0.9f);
 
-        Gizmos.color = Color.red;
+        Gizmos.color = Color.darkMagenta;
         Gizmos.DrawCube(new Vector3(goalX, -goalY, 0.0f), Vector3.one * 0.9f);
         
     }
@@ -668,7 +801,77 @@ public class Pathfinding : MonoBehaviour
     
     
     
-    
+    private IEnumerator BestFirstSearchCoroutine(Node origin, Node goal)
+    {
+        // Nodo origen es su propio padre.
+        origin.Parent = origin;
+        
+        // lista abierta. Que es una fila de prioridad (PriorityQueue)
+        PriorityQueue<Node, float> openPriorityQueue = new PriorityQueue<Node, float>();
+        
+        // Hay que meter al origin a la lista abierta, para que current inicie siendo origin.
+        openPriorityQueue.Enqueue(origin, 0.0f);
+        
+
+
+        Node current = null;
+        while (!openPriorityQueue.IsEmpty()) // mientras todavía haya elementos en la lista abierta.
+        {
+            yield return new WaitForSeconds(cycleSpeed);
+            
+            // tomamos el del frente y ese se vuelve current
+            current = openPriorityQueue.Dequeue();
+
+            // lo metemos a la lista cerrada
+            _closedList.Add(current);
+
+            // checamos si ya llegamos a la meta.
+            if (current == goal)
+            {
+                Debug.Log($"Camino encontrado desde {origin.X}, {origin.Y} hasta {goal.X}, {goal.Y}" );
+                // si ya llegamos entonces retornamos true.
+                yield break;
+            }
+
+            // si no hemos llegado, intentamos meter a cada uno de los vecinos de este nodo a la lista abierta.
+            // Lo mismo, excepto que vamos a tomar en cuenta la heurística para meterlos (ordenarlos) en la lista abierta.
+            int x = current.X;
+            int y = current.Y;
+            // checamos nodo de arriba (Nos dice que está dentro de la cuadrícula, que no tiene parent y que sí
+            // es caminable).
+            Node upNode = CheckNode(current, 0, (int)EDirections.Up);
+            if (upNode != null)
+            {
+                // Necesitamos calcular la prioridad antes de meterlo a la lista abierta.
+                // En este caso es la distancia euclidiana entre dicho nodo y la meta.
+                float distance = math.sqrt(math.square(upNode.X - goal.X) + math.square(upNode.Y - goal.Y));
+                openPriorityQueue.Enqueue(upNode, distance);
+            }
+            
+            Node rightNode = CheckNode(current, (int)EDirections.Right, 0);
+            if (rightNode != null)
+            {
+                float distance = math.sqrt(math.square(rightNode.X - goal.X) + math.square(rightNode.Y - goal.Y));
+                openPriorityQueue.Enqueue(rightNode, distance);
+            }
+            
+            Node downNode = CheckNode(current, 0, (int)EDirections.Down);
+            if (downNode != null)
+            {
+                float distance = math.sqrt(math.square(downNode.X - goal.X) + math.square(downNode.Y - goal.Y));
+                openPriorityQueue.Enqueue(downNode, distance);
+            }
+            
+            Node leftNode = CheckNode(current, (int)EDirections.Left, 0);
+            if (leftNode != null)
+            {
+                float distance = math.sqrt(math.square(leftNode.X - goal.X) + math.square(leftNode.Y - goal.Y));
+                openPriorityQueue.Enqueue(leftNode, distance);
+            }
+        }
+        
+        yield break; // si no se encontró camino.
+    }
     
     
 }

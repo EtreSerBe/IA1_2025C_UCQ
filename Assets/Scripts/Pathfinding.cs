@@ -142,7 +142,7 @@ public class Pathfinding : MonoBehaviour
     private HashSet<Node> _closedList = new HashSet<Node>();
 
     private List<Node> _pathToGoal = new List<Node>();
-    
+    public List<Node> PathToGoal => _pathToGoal; 
     
     
     // Algoritmo para inicializar el grid de width*height
@@ -498,6 +498,83 @@ public class Pathfinding : MonoBehaviour
         return false; // si no se encontró camino.
     }
     
+    private bool AStarSearch(Node origin, Node goal)
+    {
+        // Nodo origen es su propio padre.
+        origin.Parent = origin;
+        
+        // lista abierta. Que es una fila de prioridad (PriorityQueue)
+        AStarPriorityQueue openPriorityQueue = new AStarPriorityQueue();
+        
+        // Hay que meter al origin a la lista abierta, para que current inicie siendo origin.
+        openPriorityQueue.Enqueue(origin, 0.0f);
+        
+
+        Node current = null;
+        while (!openPriorityQueue.IsEmpty()) // mientras todavía haya elementos en la lista abierta.
+        {
+            // tomamos el del frente y ese se vuelve current
+            current = openPriorityQueue.Dequeue();
+
+            // lo metemos a la lista cerrada
+            _closedList.Add(current);
+
+            // checamos si ya llegamos a la meta.
+            if (current == goal)
+            {
+                Debug.Log($"Camino encontrado desde {origin.X}, {origin.Y} hasta {goal.X}, {goal.Y}" );
+                // si ya llegamos entonces retornamos true.
+                return true;
+            }
+
+            // si no hemos llegado, intentamos meter a cada uno de los vecinos de este nodo a la lista abierta.
+            // Lo mismo, excepto que vamos a tomar en cuenta la heurística para meterlos (ordenarlos) en la lista abierta.
+            int x = current.X;
+            int y = current.Y;
+            // checamos nodo de arriba (Nos dice que está dentro de la cuadrícula, que no tiene parent y que sí
+            // es caminable).
+            Node upNode = CheckNodeDjisktra(current, 0, (int)EDirections.Up);
+            if (upNode != null)
+            {
+                // Costo propio del nodo + costo total de su parent.
+                float totalCost = upNode.TerrainCost + upNode.Parent.TotalCost;
+                // Parte heurística como en Best-first search
+                float distance = math.sqrt(math.square(upNode.X - goal.X) + math.square(upNode.Y - goal.Y));
+
+                // al ponerlo en la fila abierta SÍ es con todo y la distancia,
+                // pero el TotalCost no guarda esa parte heurística
+                openPriorityQueue.Enqueue(upNode, totalCost + distance);
+            }
+            
+            Node rightNode = CheckNodeDjisktra(current, (int)EDirections.Right, 0);
+            if (rightNode != null)
+            {
+                float totalCost = rightNode.TerrainCost + rightNode.Parent.TotalCost;
+                float distance = math.sqrt(math.square(rightNode.X - goal.X) + math.square(rightNode.Y - goal.Y));
+                openPriorityQueue.Enqueue(rightNode, totalCost + distance);
+            }
+            
+            Node downNode = CheckNodeDjisktra(current, 0, (int)EDirections.Down);
+            if (downNode != null)
+            {
+                float totalCost = downNode.TerrainCost + downNode.Parent.TotalCost;
+                float distance = math.sqrt(math.square(downNode.X - goal.X) + math.square(downNode.Y - goal.Y));
+                openPriorityQueue.Enqueue(downNode, totalCost + distance);
+            }
+            
+            Node leftNode = CheckNodeDjisktra(current, (int)EDirections.Left, 0);
+            if (leftNode != null)
+            {
+                float totalCost = leftNode.TerrainCost + leftNode.Parent.TotalCost;
+                float distance = math.sqrt(math.square(leftNode.X - goal.X) + math.square(leftNode.Y - goal.Y));
+                openPriorityQueue.Enqueue(leftNode, totalCost + distance);
+            }
+        }
+        
+        return false; // si no se encontró camino.
+    }
+    
+    
     private bool DjikstraSearch(Node origin, Node goal)
     {
         // Nodo origen es su propio padre.
@@ -566,9 +643,6 @@ public class Pathfinding : MonoBehaviour
         return false; // si no se encontró camino.
     }
     
-    
-    
-    
     // recursivo VS iterativo
     // Recursivo es que se manda a llamar a sí mismo dentro del cuerpo de la función.
     public int RestaHastaCero(int value)
@@ -591,6 +665,35 @@ public class Pathfinding : MonoBehaviour
         // le ponemos que es su propio padre.
         _grid[originY][originX].Parent = _grid[originY][originX];
 
+    }
+
+    public bool FindPath()
+    {
+        InitializeGrid();
+        SetupGrid();
+        
+        // él es su propio parent, de lo contrario los otros nodos lo toman como que no ha sido visitado y lo usan 
+        // para el pathfinding.
+        _grid[originY][originX].Parent = _grid[originY][originX];
+        if (AStarSearch(_grid[originY][originX], _grid[goalY][goalX]))
+        {
+            Debug.Log($"Sí se encontró camino desde {originX},{originY}, hasta {goalX},{goalY}");
+            // iterar desde la meta usando el parent hasta regresar a la raíz (el nodo que se tiene a sí mismo como parent).
+            Node current = _grid[goalY][goalX];
+            while (current.Parent != current)
+            {
+                Debug.Log($"El nodo: X{current.X}, Y{current.Y} fue parte de la ruta.");
+                _pathToGoal.Add(current);
+                current = current.Parent; // nos movemos al parent del actual para regresar en el árbol.
+            }
+            Debug.Log($"El nodo: X{current.X}, Y{current.Y} fue parte de la ruta.");
+            return true;
+        }
+        else
+        {
+            Debug.Log($"No se encontró camino desde {originX},{originY}, hasta {goalX},{goalY}");
+            return false;
+        }
     }
     
     // Start is called once before the first execution of Update after the MonoBehaviour is created
@@ -615,28 +718,33 @@ public class Pathfinding : MonoBehaviour
         // if (DepthFirstSearchRecursive(_grid[originY][originX], _grid[goalY][goalX]))
          // if (DepthFirstSearchIterative(_grid[originY][originX], _grid[goalY][goalX]))
          //if (BestFirstSearch(_grid[originY][originX], _grid[goalY][goalX]))
-         if (DjikstraSearch(_grid[originY][originX], _grid[goalY][goalX]))
-         {
-             Debug.Log($"Sí se encontró camino desde {originX},{originY}, hasta {goalX},{goalY}");
-             // iterar desde la meta usando el parent hasta regresar a la raíz (el nodo que se tiene a sí mismo como parent).
-             Node current = _grid[goalY][goalX];
-             while (current.Parent != current)
-             {
-                 Debug.Log($"El nodo: X{current.X}, Y{current.Y} fue parte de la ruta.");
-                 _pathToGoal.Add(current);
-                 current = current.Parent; // nos movemos al parent del actual para regresar en el árbol.
-             }
-             Debug.Log($"El nodo: X{current.X}, Y{current.Y} fue parte de la ruta.");
-         }
-         else
-         {
-             Debug.Log($"No se encontró camino desde {originX},{originY}, hasta {goalX},{goalY}");
-         }
+         // if (DjikstraSearch(_grid[originY][originX], _grid[goalY][goalX]))
+         // // if (AStarSearch(_grid[originY][originX], _grid[goalY][goalX]))
+         // {
+         //     Debug.Log($"Sí se encontró camino desde {originX},{originY}, hasta {goalX},{goalY}");
+         //     // iterar desde la meta usando el parent hasta regresar a la raíz (el nodo que se tiene a sí mismo como parent).
+         //     Node current = _grid[goalY][goalX];
+         //     while (current.Parent != current)
+         //     {
+         //         Debug.Log($"El nodo: X{current.X}, Y{current.Y} fue parte de la ruta.");
+         //         _pathToGoal.Add(current);
+         //         current = current.Parent; // nos movemos al parent del actual para regresar en el árbol.
+         //     }
+         //     Debug.Log($"El nodo: X{current.X}, Y{current.Y} fue parte de la ruta.");
+         // }
+         // else
+         // {
+         //     Debug.Log($"No se encontró camino desde {originX},{originY}, hasta {goalX},{goalY}");
+         // }
         
         // VERSIONES CORRUTINA
         // StartCoroutine(DepthFirstSearchIterativeCoroutine(_grid[originY][originX], _grid[goalY][goalX]));
 
         // StartCoroutine(BestFirstSearchCoroutine(_grid[originY][originX], _grid[goalY][goalX]));
+        // StartCoroutine(AStarSearchCoroutine(_grid[originY][originX], _grid[goalY][goalX]));
+        // StartCoroutine(AStarSearchDiagonalCoroutine(_grid[originY][originX], _grid[goalY][goalX]));
+
+        
     }
 
     // Update is called once per frame
@@ -874,4 +982,232 @@ public class Pathfinding : MonoBehaviour
     }
     
     
+    private IEnumerator AStarSearchCoroutine(Node origin, Node goal)
+    {
+        // Nodo origen es su propio padre.
+        origin.Parent = origin;
+        
+        // lista abierta. Que es una fila de prioridad (PriorityQueue)
+        AStarPriorityQueue openPriorityQueue = new AStarPriorityQueue();
+        
+        // Hay que meter al origin a la lista abierta, para que current inicie siendo origin.
+        openPriorityQueue.Enqueue(origin, 0.0f);
+        
+
+        Node current = null;
+        while (!openPriorityQueue.IsEmpty()) // mientras todavía haya elementos en la lista abierta.
+        {
+            yield return new WaitForSeconds(cycleSpeed);
+
+            // tomamos el del frente y ese se vuelve current
+            current = openPriorityQueue.Dequeue();
+
+            // lo metemos a la lista cerrada
+            _closedList.Add(current);
+
+            // checamos si ya llegamos a la meta.
+            if (current == goal)
+            {
+                Debug.Log($"Camino encontrado desde {origin.X}, {origin.Y} hasta {goal.X}, {goal.Y}" );
+                
+                Node currentToGoal = _grid[goalY][goalX];
+                while (currentToGoal.Parent != currentToGoal)
+                {
+                    Debug.Log($"El nodo: X{currentToGoal.X}, Y{currentToGoal.Y} fue parte de la ruta.");
+                    _pathToGoal.Add(currentToGoal);
+                    currentToGoal = currentToGoal.Parent; // nos movemos al parent del actual para regresar en el árbol.
+                }
+                // si ya llegamos entonces retornamos true.
+                yield break;
+            }
+
+            // si no hemos llegado, intentamos meter a cada uno de los vecinos de este nodo a la lista abierta.
+            // Lo mismo, excepto que vamos a tomar en cuenta la heurística para meterlos (ordenarlos) en la lista abierta.
+            int x = current.X;
+            int y = current.Y;
+            // checamos nodo de arriba (Nos dice que está dentro de la cuadrícula, que no tiene parent y que sí
+            // es caminable).
+            Node upNode = CheckNodeDjisktra(current, 0, (int)EDirections.Up);
+            if (upNode != null)
+            {
+                // Costo propio del nodo + costo total de su parent.
+                float totalCost = upNode.TerrainCost + upNode.Parent.TotalCost;
+                // Parte heurística como en Best-first search
+                upNode.HCost = math.sqrt(math.square(upNode.X - goal.X) + math.square(upNode.Y - goal.Y));
+
+                // al ponerlo en la fila abierta SÍ es con todo y la distancia,
+                // pero el TotalCost no guarda esa parte heurística
+                openPriorityQueue.Enqueue(upNode, totalCost + upNode.HCost);
+            }
+            
+            Node rightNode = CheckNodeDjisktra(current, (int)EDirections.Right, 0);
+            if (rightNode != null)
+            {
+                float totalCost = rightNode.TerrainCost + rightNode.Parent.TotalCost;
+                rightNode.HCost = math.sqrt(math.square(rightNode.X - goal.X) + math.square(rightNode.Y - goal.Y));
+                
+                openPriorityQueue.Enqueue(rightNode, totalCost + rightNode.HCost);
+            }
+            
+            Node downNode = CheckNodeDjisktra(current, 0, (int)EDirections.Down);
+            if (downNode != null)
+            {
+                float totalCost = downNode.TerrainCost + downNode.Parent.TotalCost;
+                downNode.HCost = math.sqrt(math.square(downNode.X - goal.X) + math.square(downNode.Y - goal.Y));
+                openPriorityQueue.Enqueue(downNode, totalCost + downNode.HCost);
+            }
+            
+            Node leftNode = CheckNodeDjisktra(current, (int)EDirections.Left, 0);
+            if (leftNode != null)
+            {
+                float totalCost = leftNode.TerrainCost + leftNode.Parent.TotalCost;
+                leftNode.HCost = math.sqrt(math.square(leftNode.X - goal.X) + math.square(leftNode.Y - goal.Y));
+                openPriorityQueue.Enqueue(leftNode, totalCost + leftNode.HCost);
+            }
+        }
+        
+        yield break; // si no se encontró camino.
+    }
+    
+    
+     private IEnumerator AStarSearchDiagonalCoroutine(Node origin, Node goal)
+    {
+        // Nodo origen es su propio padre.
+        origin.Parent = origin;
+        
+        // lista abierta. Que es una fila de prioridad (PriorityQueue)
+        AStarPriorityQueue openPriorityQueue = new AStarPriorityQueue();
+        
+        // Hay que meter al origin a la lista abierta, para que current inicie siendo origin.
+        openPriorityQueue.Enqueue(origin, 0.0f);
+        
+
+        Node current = null;
+        while (!openPriorityQueue.IsEmpty()) // mientras todavía haya elementos en la lista abierta.
+        {
+            yield return new WaitForSeconds(cycleSpeed);
+
+            // tomamos el del frente y ese se vuelve current
+            current = openPriorityQueue.Dequeue();
+
+            // lo metemos a la lista cerrada
+            _closedList.Add(current);
+
+            // checamos si ya llegamos a la meta.
+            if (current == goal)
+            {
+                Debug.Log($"Camino encontrado desde {origin.X}, {origin.Y} hasta {goal.X}, {goal.Y}" );
+                
+                Node currentToGoal = _grid[goalY][goalX];
+                while (currentToGoal.Parent != currentToGoal)
+                {
+                    Debug.Log($"El nodo: X{currentToGoal.X}, Y{currentToGoal.Y} fue parte de la ruta.");
+                    _pathToGoal.Add(currentToGoal);
+                    currentToGoal = currentToGoal.Parent; // nos movemos al parent del actual para regresar en el árbol.
+                }
+                // si ya llegamos entonces retornamos true.
+                yield break;
+            }
+
+            // si no hemos llegado, intentamos meter a cada uno de los vecinos de este nodo a la lista abierta.
+            // Lo mismo, excepto que vamos a tomar en cuenta la heurística para meterlos (ordenarlos) en la lista abierta.
+            int x = current.X;
+            int y = current.Y;
+            // checamos nodo de arriba (Nos dice que está dentro de la cuadrícula, que no tiene parent y que sí
+            // es caminable).
+
+            for (int yOffset = -1; yOffset < 2; yOffset++)
+            {
+                for (int xOffset = -1; xOffset < 2; xOffset++)
+                {
+                    if (x == 0 && y == 0)
+                        continue; // porque sería visitar el current. 
+                    
+                    Node node = CheckNodeDjisktra(current, xOffset, yOffset);
+                    if (node != null)
+                    {
+                        // Costo propio del nodo + costo total de su parent.
+                        float totalCost = node.TerrainCost + node.Parent.TotalCost;
+                        // Parte heurística como en Best-first search
+                        node.HCost = math.sqrt(math.square(node.X - goal.X) + math.square(node.Y - goal.Y));
+
+                        // al ponerlo en la fila abierta SÍ es con todo y la distancia,
+                        // pero el TotalCost no guarda esa parte heurística
+                        openPriorityQueue.Enqueue(node, totalCost + node.HCost);
+                    }
+                }
+            }
+            
+            // Node upNode = CheckNodeDjisktra(current, 0, (int)EDirections.Up);
+            // if (upNode != null)
+            // {
+            //     // Costo propio del nodo + costo total de su parent.
+            //     float totalCost = upNode.TerrainCost + upNode.Parent.TotalCost;
+            //     // Parte heurística como en Best-first search
+            //     upNode.HCost = math.sqrt(math.square(upNode.X - goal.X) + math.square(upNode.Y - goal.Y));
+            //
+            //     // al ponerlo en la fila abierta SÍ es con todo y la distancia,
+            //     // pero el TotalCost no guarda esa parte heurística
+            //     openPriorityQueue.Enqueue(upNode, totalCost + upNode.HCost);
+            // }
+            
+            // Node rightNode = CheckNodeDjisktra(current, (int)EDirections.Right, 0);
+            // if (rightNode != null)
+            // {
+            //     float totalCost = rightNode.TerrainCost + rightNode.Parent.TotalCost;
+            //     rightNode.HCost = math.sqrt(math.square(rightNode.X - goal.X) + math.square(rightNode.Y - goal.Y));
+            //     
+            //     openPriorityQueue.Enqueue(rightNode, totalCost + rightNode.HCost);
+            // }
+            //
+            // Node downNode = CheckNodeDjisktra(current, 0, (int)EDirections.Down);
+            // if (downNode != null)
+            // {
+            //     float totalCost = downNode.TerrainCost + downNode.Parent.TotalCost;
+            //     downNode.HCost = math.sqrt(math.square(downNode.X - goal.X) + math.square(downNode.Y - goal.Y));
+            //     openPriorityQueue.Enqueue(downNode, totalCost + downNode.HCost);
+            // }
+            //
+            // Node leftNode = CheckNodeDjisktra(current, (int)EDirections.Left, 0);
+            // if (leftNode != null)
+            // {
+            //     float totalCost = leftNode.TerrainCost + leftNode.Parent.TotalCost;
+            //     leftNode.HCost = math.sqrt(math.square(leftNode.X - goal.X) + math.square(leftNode.Y - goal.Y));
+            //     openPriorityQueue.Enqueue(leftNode, totalCost + leftNode.HCost);
+            // }
+            //
+            //
+            // Node upLeftNode = CheckNodeDjisktra(current, (int)EDirections.Left, (int)EDirections.Up);
+            // if (upLeftNode != null)
+            // {
+            //     float totalCost = upLeftNode.TerrainCost + upLeftNode.Parent.TotalCost;
+            //     upLeftNode.HCost = math.sqrt(math.square(upLeftNode.X - goal.X) + math.square(upLeftNode.Y - goal.Y));
+            //     openPriorityQueue.Enqueue(upLeftNode, totalCost + upLeftNode.HCost);
+            // }
+            // Node upRightNode = CheckNodeDjisktra(current, (int)EDirections.Right, (int)EDirections.Up);
+            // if (upRightNode != null)
+            // {
+            //     float totalCost = upRightNode.TerrainCost + upRightNode.Parent.TotalCost;
+            //     upRightNode.HCost = math.sqrt(math.square(upRightNode.X - goal.X) + math.square(upRightNode.Y - goal.Y));
+            //     openPriorityQueue.Enqueue(upRightNode, totalCost + upRightNode.HCost);
+            // }
+            // Node downLeftNode = CheckNodeDjisktra(current, (int)EDirections.Left, (int)EDirections.Down);
+            // if (downLeftNode != null)
+            // {
+            //     float totalCost = downLeftNode.TerrainCost + downLeftNode.Parent.TotalCost;
+            //     downLeftNode.HCost = math.sqrt(math.square(downLeftNode.X - goal.X) + math.square(downLeftNode.Y - goal.Y));
+            //     openPriorityQueue.Enqueue(downLeftNode, totalCost + downLeftNode.HCost);
+            // }
+            // Node downRightNode = CheckNodeDjisktra(current, (int)EDirections.Right, (int)EDirections.Down);
+            // if (downRightNode != null)
+            // {
+            //     float totalCost = downRightNode.TerrainCost + downRightNode.Parent.TotalCost;
+            //     downRightNode.HCost = math.sqrt(math.square(downRightNode.X - goal.X) + math.square(downRightNode.Y - goal.Y));
+            //     openPriorityQueue.Enqueue(downRightNode, totalCost + downRightNode.HCost);
+            // }
+            //
+        }
+        
+        yield break; // si no se encontró camino.
+    }
 }

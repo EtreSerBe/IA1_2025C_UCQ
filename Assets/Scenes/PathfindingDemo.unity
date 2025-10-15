@@ -250,6 +250,10 @@ GameObject:
   m_Component:
   - component: {fileID: 1115821419}
   - component: {fileID: 1115821418}
+  - component: {fileID: 1115821423}
+  - component: {fileID: 1115821422}
+  - component: {fileID: 1115821421}
+  - component: {fileID: 1115821420}
   m_Layer: 0
   m_Name: GridManager
   m_TagString: Untagged
@@ -269,18 +273,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8ba636c77e48463408808d4ab09fbba2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  height: 15
-  width: 15
-  originX: 1
-  originY: 1
-  goalX: 13
-  goalY: 13
-  cycleSpeed: 0.1
-  walkableProbability: 0.929
+  height: 31
+  width: 31
+  originX: 15
+  originY: 15
+  goalX: 30
+  goalY: 30
+  cycleSpeed: 0.16
+  walkableProbability: 1
   normalTileCost: 1
   fireTileCost: 20
   forestTileCost: 2
-  sandTileCost: 3
+  sandTileCost: 4
   gizmosSphereSize: 0.2
 --- !u!4 &1115821419
 Transform:
@@ -297,6 +301,113 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!23 &1115821420
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1115821417}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 0}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!33 &1115821421
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1115821417}
+  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!54 &1115821422
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1115821417}
+  serializedVersion: 5
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 0
+  m_IsKinematic: 0
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
+--- !u!114 &1115821423
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1115821417}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7e0ac01d223b4914d8ef5363513bee80, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  currentBehavior: 1
+  maxSpeed: 3
+  maxForce: 2
+  arriveBrakeRadius: 5
+  arriveToleranceRadius: 0.5
+  arriveSpeedTolerance: 0.5
+  useObstacleAvoidance: 1
+  obstacleAvoidanceDetectionRadius: 5
+  obstacleAvoidanceLayerMask:
+    serializedVersion: 2
+    m_Bits: 0
+  _targetPosition: {x: 0, y: 0, z: 0}
+  _targetRb: {fileID: 0}
+  waypoints: []
+  toleranceRadius: 2
 --- !u!1 &1553130129
 GameObject:
   m_ObjectHideFlags: 0

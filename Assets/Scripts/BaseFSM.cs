@@ -8,11 +8,12 @@ public class BaseFSM : MonoBehaviour
     private BaseState _currentState;
 
     private Dictionary<Type, BaseState> _states = new Dictionary<Type, BaseState>();
-
+    protected Dictionary<Type, BaseState> States => _states;
+    
     // Los Update de la máquina de estados ÚNICAMENTE mandan a llamar el update del estado actual.
     private void FixedUpdate()
     {
-        if(!_currentState)
+        if(_currentState)
             _currentState.OnFixedUpdate();
     }
 

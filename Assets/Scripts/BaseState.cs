@@ -11,7 +11,7 @@ public class BaseState : MonoBehaviour
 
     protected BaseFSM OwnerFsm;
 
-    public void SetFsm(BaseFSM owner)
+    public virtual void SetFsm(BaseFSM owner)
     {
         OwnerFsm = owner;
     }

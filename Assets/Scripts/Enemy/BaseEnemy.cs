@@ -1,11 +1,12 @@
 using System;
+using System.Collections.Generic;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.Rendering.Universal;
 using UnityEngine.Serialization;
 
-[RequireComponent(typeof(NavMeshAgent), typeof(Senses))]
+[RequireComponent(typeof(NavMeshAgent), typeof(SensorySystem))]
 public class BaseEnemy : MonoBehaviour, IDamageable
 {
     // public delegate void EnemyToPlayerCollision(BaseEnemy enemy);
@@ -29,10 +30,51 @@ public class BaseEnemy : MonoBehaviour, IDamageable
     [SerializeField] protected float movementSpeed;
 
     // Sistema que se encarga detectar cosas importantes para el agente.
-    protected Senses SensesSystem;
+    // protected Senses SensesSystem;
+    protected SensorySystem SensesSystem;
+
+    public SensorySystem GetSensesSystem()
+    {
+        return SensesSystem;
+    }
 
     protected NavMeshAgent NavAgent;
 
+    // Función para que los estados de la FSM le puedan poner una posición objetivo, 
+    // sin exponer el NavMeshAgent a cambios.
+    public void SetDestination(Vector3 position)
+    {
+        NavAgent.isStopped = true;
+    }
+    public void StopMoving()
+    {
+        NavAgent.destination = transform.position;
+    }
+
+    // ME FALTA ASIGNAR EL TARGET PLAYER!
+    private Player _targetPlayer;
+
+    public Vector3 GetTargetPlayerPosition()
+    {
+        if(_targetPlayer)
+            return _targetPlayer.transform.position;
+        return Vector3.zero;
+    }
+    public void GoToTargetPlayer()
+    {
+        if (_targetPlayer == null)
+        {
+            Debug.Log($"El enemigo {gameObject.name} no tiene asignado un target player en su go to target");
+            return; // Nos salimos para evitar que haga null reference exception
+        }
+        NavAgent.destination = _targetPlayer.transform.position;
+    }
+
+    public bool HasDestination()
+    {
+        return !NavAgent.isStopped;
+    }
+    
     public enum EDamageMethodType
     {
         DirectClass,
@@ -41,19 +83,40 @@ public class BaseEnemy : MonoBehaviour, IDamageable
     }
 
     public EDamageMethodType currentDamageMethodType = EDamageMethodType.DirectClass;
+
+    public float GetAttackRange()
+    {
+        return attackRange;
+    }
     
     // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    void Awake()
     {
         NavAgent = GetComponent<NavMeshAgent>();
         if (NavAgent == null)
         {
             Debug.LogError($"El gameObject {gameObject.name} falló en obtener su navMeshAgent. Favor de verificar");
         }
-        SensesSystem = GetComponent<Senses>();
+        SensesSystem = GetComponent<SensorySystem>();
         if (SensesSystem == null)
         {
-            Debug.LogError($"El gameObject {gameObject.name} falló en obtener su Senses. Favor de verificar");
+            Debug.LogError($"El gameObject {gameObject.name} falló en obtener su SensorySystem. Favor de verificar");
+        }
+    }
+
+    private void FixedUpdate()
+    {
+        List<GameObject> sensedObjects = SensesSystem.SensedObjects;
+        if (sensedObjects != null && sensedObjects.Count > 0) // tiene que ser válido y tener al menos 1 elemento
+        {
+            _targetPlayer = SensesSystem.SensedObjects[0].GetComponent<Player>();
+            if (_targetPlayer == null)
+            {
+                Debug.LogError($"El gameObject: {SensesSystem.SensedObjects[0].name} no" +
+                               $"tiene un script de Player pero fue detectado por el sistema sensorial," +
+                               $"favor de verificar");
+            }
+
         }
     }
 
@@ -138,8 +201,11 @@ public class BaseEnemy : MonoBehaviour, IDamageable
     public void TakeDamage(int damage)
     {
         currentHp -= damage;
-        if(currentHp <= 0)
+        if (currentHp <= 0)
+        {
+            Debug.Log($"Destruyendo el gameObject: {gameObject.name}");
             Destroy(gameObject);
+        }
     }
 
     

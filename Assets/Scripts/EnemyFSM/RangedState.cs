@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class RangedState : BaseState
+public class RangedState : EnemyBaseState
 {
     void Awake()
     {

@@ -189,13 +189,59 @@ public class BaseEnemy : MonoBehaviour, IDamageable
     // Evento que se manda a llamar cuando se colisiona con un collider que sí es trigger.
     protected virtual void OnTriggerEnter(Collider other)
     {
-        // Chocar contra player
-        
-        // Chocar contra disparo o ataque del player
-        
-        // Paredes
-        
-        // Obstáculos
+        if (other.gameObject.layer == Constants.Layers.PlayerLayer)
+        {
+            switch (currentDamageMethodType)
+            {
+                case EDamageMethodType.DirectClass:
+                    Debug.Log($"Causando: {contactDamage} de daño al player {other.gameObject.name} " +
+                              $"con el método de clase directa");
+                    // Obtenemos el componente BasePlayer del gameObject con quien chocamos.
+                    Player player = other.gameObject.GetComponent<Player>();
+                    if (player == null)
+                    {
+                        Debug.LogWarning($"El gameObject {other.gameObject} en la layer de player no tiene su componente de base player");
+                        return;
+                    }
+                    // Si sí tiene ese script, pues le hacemos daño.
+                    player.TakeDamage(contactDamage);
+                    break;
+                case EDamageMethodType.IDamageableInterface:
+                    Debug.Log($"Causando: {contactDamage} de daño al player {other.gameObject.name}" +
+                              $"a través del método de la interfaz");
+                    IDamageable myPlayer = other.gameObject.GetComponent<IDamageable>();
+                    if (myPlayer == null)
+                    {
+                        Debug.LogWarning($"El gameObject {other.gameObject} en la layer de player no tiene su componente de IDamageable");
+                        return;
+                    }
+                    // Si sí tiene ese script, pues le hacemos daño.
+                    myPlayer.TakeDamage(contactDamage);
+                    break;
+                case EDamageMethodType.Events:
+                    Debug.Log($"Invocando el evento para causar: {contactDamage} de daño al player " +
+                              $"{other.gameObject.name}");
+                    inflictDamageEvent?.Invoke(other.gameObject, contactDamage);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+            // Si fuera necesario, checar la tag de ese GameObject que está en la layer de player.
+            // Normalmente, cuando toque al player le va a hacer daño por contacto.
+
+            
+
+            
+            // Eventos y/o delegates
+            // Publisher (el que produce/desencadena/genera el evento)
+            // subscribers (a los que les interesa hacer algo cuando sucede el evento)
+            // Publicar el evento "EnemyToPlayerCollision"
+            // Probablemente a los players les interesa este evento.
+            // Al recibir este evento, el player que chocó recibiría daño
+            // Al sistema de Scoreboard (tabla de puntuaciones) también le podría interesar este evento
+            // para actualizar cuánto daño han tomado los players por culpa de los enemigos.
+
+        }
     }
 
     public void TakeDamage(int damage)

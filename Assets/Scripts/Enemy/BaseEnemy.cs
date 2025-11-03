@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.Assertions;
 using UnityEngine.Rendering.Universal;
 using UnityEngine.Serialization;
 
@@ -29,16 +30,25 @@ public class BaseEnemy : MonoBehaviour, IDamageable
 
     [SerializeField] protected float movementSpeed;
 
+    // Animator (máquina de estados de animación de Unity) que se usa para triggerear las animaciones adecuadas.
+    public Animator enemyAnimator;
+    public EnemyFSM EnemyFsm;
+    
     // Sistema que se encarga detectar cosas importantes para el agente.
     // protected Senses SensesSystem;
     protected SensorySystem SensesSystem;
+    protected NavMeshAgent NavAgent;
+    // ME FALTA ASIGNAR EL TARGET PLAYER!
+    private Player _targetPlayer;
+    
+    protected static readonly int MovementSpeedHashId = Animator.StringToHash("MovementSpeed");
+
 
     public SensorySystem GetSensesSystem()
     {
         return SensesSystem;
     }
 
-    protected NavMeshAgent NavAgent;
 
     // Función para que los estados de la FSM le puedan poner una posición objetivo, 
     // sin exponer el NavMeshAgent a cambios.
@@ -51,8 +61,7 @@ public class BaseEnemy : MonoBehaviour, IDamageable
         NavAgent.destination = transform.position;
     }
 
-    // ME FALTA ASIGNAR EL TARGET PLAYER!
-    private Player _targetPlayer;
+
 
     public Vector3 GetTargetPlayerPosition()
     {
@@ -102,6 +111,14 @@ public class BaseEnemy : MonoBehaviour, IDamageable
         {
             Debug.LogError($"El gameObject {gameObject.name} falló en obtener su SensorySystem. Favor de verificar");
         }
+        
+        // Esta sería otra posible manera de hacer lo de arriba, pero igual se corre el peligro de que sea null y 
+        // usarlo después :v
+        enemyAnimator = Utilities.GetComponent<Animator>(gameObject);
+
+        // Assert.IsFalse(enemyAnimator != null);
+
+        EnemyFsm = Utilities.GetComponent<EnemyFSM>(gameObject);
     }
 
     private void FixedUpdate()
@@ -118,6 +135,9 @@ public class BaseEnemy : MonoBehaviour, IDamageable
             }
 
         }
+        
+        // Necesario para actualizar el flotante del animator que controla si estás en idle/walk/run.
+        enemyAnimator.SetFloat(MovementSpeedHashId, NavAgent.velocity.magnitude);
     }
 
     // Evento que se manda a llamar cuando se colisiona con un collider que no es trigger.

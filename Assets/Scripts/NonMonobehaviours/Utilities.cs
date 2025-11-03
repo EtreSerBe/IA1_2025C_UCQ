@@ -7,7 +7,17 @@ using UnityEngine;
 public class Utilities
 {
     // Todas las funciones aquí van a ser estáticas, porque no vamos a instanciar nunca un objeto de la clase Utilities.
-    
+
+
+    public static T GetComponent<T>(GameObject gameObject) where T : Component
+    {
+        T component = gameObject.GetComponent<T>();
+        if (component)
+            return component;
+        // si falló
+        Debug.LogError($"El gameObject: {gameObject.name} no tiene un componente del tipo: {typeof(T)} asignado");
+        return null;
+    }
     
     
     public static Vector3 PuntaMenosCola(Vector3 punta, Vector3 cola)

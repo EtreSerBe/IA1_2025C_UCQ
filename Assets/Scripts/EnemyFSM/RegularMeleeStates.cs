@@ -17,9 +17,19 @@ public class BasicMeleeAttackState : EnemyBaseState
           if (Utilities.IsObjectInRange(transform.position, playerPosition, EnemyContext.GetAttackRange()))
           {
                // Activamos el ataque básico. Solo si no está ejecutándose ya.
-               if(AttackCoroutine == null) // Si es null, quiere decir que la corrutina no está activa.
-                    AttackCoroutine = StartCoroutine( DoBasicAttack());
+               // if(AttackCoroutine == null) // Si es null, quiere decir que la corrutina no está activa.
+               //      AttackCoroutine = StartCoroutine( DoBasicAttack());
+               // Si este bool de la animación de basicSlashAttack no está activado, entonces sí lo ponemos como true.
+               if(!EnemyContext.enemyAnimator.GetBool(SwordsmanEnemy.BasicSlashAttackHashId))
+                    TriggerAttack();
           }
+     }
+
+     // Vamos a activar las variables de la Máquina de estados de animación (Animator) para que se triggeree la animación
+     // de la acción que queremos.
+     private void TriggerAttack()
+     {
+          EnemyContext.enemyAnimator.SetBool(SwordsmanEnemy.BasicSlashAttackHashId, true);
      }
      
      private IEnumerator DoBasicAttack()
@@ -51,9 +61,18 @@ public class AreaMeleeAttackState : EnemyBaseState
           if (Utilities.IsObjectInRange(transform.position, playerPosition, EnemyContext.GetAttackRange()))
           {
                // Activamos el ataque básico. Solo si no está ejecutándose ya.
-               if(AttackCoroutine == null) // Si es null, quiere decir que la corrutina no está activa.
-                    AttackCoroutine = StartCoroutine( DoAttack());
+               // if(AttackCoroutine == null) // Si es null, quiere decir que la corrutina no está activa.
+               //      AttackCoroutine = StartCoroutine( DoAttack());
+               if(!EnemyContext.enemyAnimator.GetBool(SwordsmanEnemy.AreaSlashAttackHashId))
+                    TriggerAttack();
           }
+     }
+     
+     // Vamos a activar las variables de la Máquina de estados de animación (Animator) para que se triggeree la animación
+     // de la acción que queremos.
+     private void TriggerAttack()
+     {
+          EnemyContext.enemyAnimator.SetBool(SwordsmanEnemy.AreaSlashAttackHashId, true);
      }
      
      private IEnumerator DoAttack()

@@ -10,6 +10,16 @@ public class BaseFSM : MonoBehaviour
     private Dictionary<Type, BaseState> _states = new Dictionary<Type, BaseState>();
     protected Dictionary<Type, BaseState> States => _states;
     
+    // Historial de cuáles estados se han ejecutado antes y en qué orden.
+    private Queue<Type> _previousStates = new Queue<Type>();
+    
+    // Cuando otros scripts lo soliciten sí se les da como un array, pero internamente es una Queue.
+    public Type[] PreviousStates => _previousStates.ToArray();
+    public Type CurrentStateType => _currentState.GetType();
+
+    // La acción que sucedió hace _previousStatesMaxBacklog-estados ya no es importante y la puede olvidar.
+    private const int PreviousStatesMaxBacklog = 10;
+
     // Los Update de la máquina de estados ÚNICAMENTE mandan a llamar el update del estado actual.
     private void FixedUpdate()
     {
@@ -47,11 +57,21 @@ public class BaseFSM : MonoBehaviour
             return;
         }
             
+        // Antes de sacar el estado actual, lo metemos a la memoria de estados previos
+
+        
         // Cuando un estado va a salir de ejecución, debe mandar a llamar su función OnExit().
         _currentState.OnExit();
         
         // Ponemos el estado nuevo como el estado actual
         _currentState = newState;
+        
+        _previousStates.Enqueue(_currentState.GetType());
+        if (_previousStates.Count > PreviousStatesMaxBacklog)
+        {
+            // si ya se excedió el límite de memoria de estados, borra el registro más viejo que tenga. 
+            _previousStates.Dequeue();
+        }
         
         // Está entrando a este nuevo estado, entonces llamamos su OnEnter()
         _currentState.OnEnter();
@@ -72,8 +92,10 @@ public class BaseFSM : MonoBehaviour
             Debug.LogError($"El gameObject: {gameObject.name} tiene como null su estado inicial." +
                            $"¿Tal vez olvidaste hacer el override de la función GetInitialState en tu clase " +
                            $"que hereda de BaseFSM?");
+            return;
         }
         
+        _previousStates.Enqueue(_currentState.GetType());
         _currentState.OnEnter();
         // Se encarga de la configuración inicial necesaria para cada máquina de estados específica.
         InitializeFSM();

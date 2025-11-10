@@ -33,7 +33,8 @@ public class EnemyFSM : BaseFSM
     protected override BaseState GetInitialState()
     {
         BasicMeleeAttackState initialState = AddState<BasicMeleeAttackState>();
-
+        // MeleeAttackState initialState = AddState<MeleeAttackState>(); // estado de muestra de cómo factorizar estados.
+       
         return initialState;
     }
     

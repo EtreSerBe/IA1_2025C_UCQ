@@ -6,4 +6,7 @@ public class RangedState : EnemyBaseState
     {
         stateName = "Ranged";
     }
+    
+    
+    
 }

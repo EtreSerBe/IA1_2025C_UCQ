@@ -4,7 +4,6 @@ using UnityEngine;
 
 
 
-
 public class BasicMeleeAttackState : EnemyBaseState
 {
      void Awake()
@@ -36,17 +35,6 @@ public class BasicMeleeAttackState : EnemyBaseState
           EnemyContext.enemyAnimator.SetBool(SwordsmanEnemy.BasicSlashAttackHashId, true);
      }
      
-     private IEnumerator DoBasicAttack()
-     {
-         // Esperamos el tiempo que se tardaría el ataque en realizarse
-         yield return new WaitForSeconds(1.0f);
-         
-         // ya que se acabó ese tiempo quiere decir que se realizó el ataque,
-         // y pasamos al siguiente estado. Por ahora vamos a decir que pasa al ataque de área
-         OwnerFsm.ChangeState<AreaMeleeAttackState>();
-         AttackCoroutine = null;
-         yield break; // yield break para salirnos de la corrutina inmediatamente y cancelarla.
-     }
 }
 
 public class AreaMeleeAttackState : EnemyBaseState
@@ -78,18 +66,6 @@ public class AreaMeleeAttackState : EnemyBaseState
      {
           EnemyContext.enemyAnimator.SetBool(SwordsmanEnemy.AreaSlashAttackHashId, true);
      }
-     
-     private IEnumerator DoAttack()
-     {
-          // Esperamos el tiempo que se tardaría el ataque en realizarse
-          yield return new WaitForSeconds(2.0f);
-         
-          // ya que se acabó ese tiempo quiere decir que se realizó el ataque,
-          // y pasamos al siguiente estado. Por ahora vamos a decir que pasa al ataque de Dash
-          OwnerFsm.ChangeState<DashMeleeAttackState>();
-          AttackCoroutine = null;
-          yield break; // yield break para salirnos de la corrutina inmediatamente y cancelarla.
-     }
 
 }
 
@@ -118,18 +94,6 @@ public class DashMeleeAttackState : EnemyBaseState
      private void TriggerAttack()
      {
           EnemyContext.enemyAnimator.SetBool(SwordsmanEnemy.DashSlashAttackHashId, true);
-     }
-     
-     private IEnumerator DoAttack()
-     {
-          // Esperamos el tiempo que se tardaría el ataque en realizarse
-          yield return new WaitForSeconds(1.5f);
-         
-          // ya que se acabó ese tiempo quiere decir que se realizó el ataque,
-          // y pasamos al siguiente estado. Por ahora vamos a decir que pasa al ataque de Ultimate
-          OwnerFsm.ChangeState<UltimateMeleeAttackState>();
-          AttackCoroutine = null;
-          yield break; // yield break para salirnos de la corrutina inmediatamente y cancelarla.
      }
 }
 
@@ -162,17 +126,6 @@ public class UltimateMeleeAttackState : EnemyBaseState
           EnemyContext.enemyAnimator.SetBool(SwordsmanEnemy.UltimateSlashAttackHashId, true);
      }
      
-     private IEnumerator DoAttack()
-     {
-          // Esperamos el tiempo que se tardaría el ataque en realizarse
-          yield return new WaitForSeconds(3.5f);
-         
-          // ya que se acabó ese tiempo quiere decir que se realizó el ataque,
-          // y pasamos al siguiente estado. Por ahora vamos a decir que pasa al ataque de Ultimate
-          OwnerFsm.ChangeState<BasicMeleeAttackState>();
-          AttackCoroutine = null;
-          yield break; // yield break para salirnos de la corrutina inmediatamente y cancelarla.
-     }
 }
 
 

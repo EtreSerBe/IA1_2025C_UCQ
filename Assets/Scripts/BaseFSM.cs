@@ -14,7 +14,7 @@ public class BaseFSM : MonoBehaviour
     private Queue<Type> _previousStates = new Queue<Type>();
     
     // Cuando otros scripts lo soliciten sí se les da como un array, pero internamente es una Queue.
-    public Type[] PreviousStates => _previousStates.ToArray();
+    public Type[] StatesHistory => _previousStates.ToArray();
     public Type CurrentStateType => _currentState.GetType();
 
     // La acción que sucedió hace _previousStatesMaxBacklog-estados ya no es importante y la puede olvidar.
@@ -95,7 +95,7 @@ public class BaseFSM : MonoBehaviour
             return;
         }
         
-        _previousStates.Enqueue(_currentState.GetType());
+        // _previousStates.Enqueue(_currentState.GetType());
         _currentState.OnEnter();
         // Se encarga de la configuración inicial necesaria para cada máquina de estados específica.
         InitializeFSM();

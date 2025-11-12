@@ -48,6 +48,11 @@ public class SwordsmanEnemy : BaseEnemy
                 currentAttackDamage = 10;
                 EnemyFsm.ChangeState<UltimateMeleeAttackState>();
                 break;
+            case ESwordsmanAttacks.BasicRangedAttack:
+                currentAttackRange = 10.0f;
+                currentAttackDamage = 1;
+                EnemyFsm.ChangeState<RangedState>();
+                break;
             case ESwordsmanAttacks.None:
             default:
                 throw new ArgumentOutOfRangeException(nameof(newAttack), newAttack, null);
@@ -110,69 +115,88 @@ public class SwordsmanEnemy : BaseEnemy
                 throw new ArgumentOutOfRangeException(nameof(attackID), attackID, null);
         }
         
-        // // Después elegimos el ataque que sigue.
-        // // Si es la primera vez en el estado de ataque básico O el estado anterior fue Ranged Ultimate, 
-        // if(EnemyFsm.CurrentStateType == typeof(BasicMeleeAttackState))
-        // {
-        //     if (EnemyFsm.PreviousStates.Length < 2 || 
-        //         EnemyFsm.PreviousStates[^2] == typeof(RangedState))
-        //     {
-        //         // Entonces es Dash o Area con un 50/50
-        //         if (Random.value < 0.5f)
-        //         {
-        //             ChangeAttack(ESwordsmanAttacks.DashSlashAttack);
-        //             return;
-        //         }
-        //         else
-        //         {
-        //             ChangeAttack(ESwordsmanAttacks.AreaSlashAttack);
-        //             return;
-        //         }
-        //     }
-        // }
-        // // Manejo del Ataque Area
-        // if (EnemyFsm.CurrentStateType == typeof(AreaMeleeAttackState))
-        // {
-        //     // Si hace 2 acciones hiciste el ataque Dash, entonces vete a ultimate; si no, vete a basic
-        //     if (EnemyFsm.PreviousStates[^3] == typeof(DashMeleeAttackState))
-        //     {
-        //         ChangeAttack(ESwordsmanAttacks.UltimateSlashAttack);
-        //         return;
-        //     }
-        //     else
-        //     {
-        //         ChangeAttack(ESwordsmanAttacks.BasicSlashAttack);
-        //         return;
-        //     }
-        // }
-        //
-        // // Manejo del Ataque Dash
-        // if (EnemyFsm.CurrentStateType == typeof(DashMeleeAttackState))
-        // {
-        //     if (EnemyFsm.PreviousStates[^3] == typeof(AreaMeleeAttackState))
-        //     {
-        //         ChangeAttack(ESwordsmanAttacks.UltimateSlashAttack);
-        //         return;
-        //     }
-        //     else
-        //     {
-        //         ChangeAttack(ESwordsmanAttacks.BasicSlashAttack);
-        //         return;
-        //     }
-        // }
-        //
-        // // Manejo del Ataque Ultimate.
-        // // Ya que se acabó el ultimate, pásate al estado ranged Basic.
-        // if (EnemyFsm.CurrentStateType == typeof(UltimateMeleeAttackState))
-        // {
-        //     ChangeAttack(ESwordsmanAttacks.BasicRangedAttack);
-        //     return;
-        // }
+        // Después elegimos el ataque que sigue.
+        SelectNextState();
+    }
+
+    private void SelectNextState()
+    {
+
+        // Si es la primera vez en el estado de ataque básico O el estado anterior fue Ranged Ultimate, 
+        if(EnemyFsm.CurrentStateType == typeof(BasicMeleeAttackState))
+        {
+            if (EnemyFsm.StatesHistory.Length < 2 || 
+                EnemyFsm.StatesHistory[^2] == typeof(RangedState))
+            {
+                // Entonces es Dash o Area con un 50/50
+                if (Random.value < 0.5f)
+                {
+                    ChangeAttack(ESwordsmanAttacks.DashSlashAttack);
+                    return;
+                }
+
+                ChangeAttack(ESwordsmanAttacks.AreaSlashAttack);
+                return;
+            }
+            if (EnemyFsm.StatesHistory.Length >= 2) // Si tiene al menos otra acción antes de este basic attack
+            {
+                // checamos si fue un area slash
+                if (EnemyFsm.StatesHistory[^2] == typeof(AreaMeleeAttackState))
+                {
+                    // entonces toca hacer el dash
+                    ChangeAttack(ESwordsmanAttacks.DashSlashAttack);
+                    return;
+                }
+                // checamos si fue un dash slash
+                if (EnemyFsm.StatesHistory[^2] == typeof(DashMeleeAttackState))
+                {
+                    // entonces toca hacer el de area
+                    ChangeAttack(ESwordsmanAttacks.AreaSlashAttack);
+                    return;
+                }
+            }
+        }
+        
+        // Manejo del Ataque Area
+        if (EnemyFsm.CurrentStateType == typeof(AreaMeleeAttackState))
+        {
+            // Si hace 2 acciones hiciste el ataque Dash, entonces vete a ultimate; si no, vete a basic
+            if (EnemyFsm.StatesHistory.Length >= 3 && 
+                EnemyFsm.StatesHistory[^3] == typeof(DashMeleeAttackState))
+            {
+                ChangeAttack(ESwordsmanAttacks.UltimateSlashAttack);
+                return;
+            }
+            ChangeAttack(ESwordsmanAttacks.BasicSlashAttack);
+            return;
+        }
+        
+        // Manejo del Ataque Dash
+        if (EnemyFsm.CurrentStateType == typeof(DashMeleeAttackState))
+        {
+            // si hace 2 acciones hizo el ataque de área, entonces toca hacer el ultimate
+            if (EnemyFsm.StatesHistory.Length >= 3 && 
+              EnemyFsm.StatesHistory[^3] == typeof(AreaMeleeAttackState))
+            {
+                ChangeAttack(ESwordsmanAttacks.UltimateSlashAttack);
+                return;
+            }
+
+            ChangeAttack(ESwordsmanAttacks.BasicSlashAttack);
+            return;
+        }
+        
+        // Manejo del Ataque Ultimate.
+        // Ya que se acabó el ultimate, pásate al estado ranged Basic.
+        if (EnemyFsm.CurrentStateType == typeof(UltimateMeleeAttackState))
+        {
+            ChangeAttack(ESwordsmanAttacks.BasicRangedAttack);
+            return;
+        }
         
         // Elección de acción melee random
-        ESwordsmanAttacks newAttack = (ESwordsmanAttacks)Random.Range((int)ESwordsmanAttacks.BasicSlashAttack, (int)ESwordsmanAttacks.MAX);
-        ChangeAttack(newAttack);
+        // ESwordsmanAttacks newAttack = (ESwordsmanAttacks)Random.Range((int)ESwordsmanAttacks.BasicSlashAttack, (int)ESwordsmanAttacks.MAX);
+        // ChangeAttack(newAttack);
     }
-    
 
 }

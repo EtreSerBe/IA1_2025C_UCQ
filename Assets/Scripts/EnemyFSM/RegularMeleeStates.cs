@@ -71,19 +71,82 @@ public class AreaMeleeAttackState : EnemyBaseState
 
 public class DashMeleeAttackState : EnemyBaseState
 {
+     // variable que nos representa que actualmente está apuntando 
+     private bool _performingAttack = false;
+     private Coroutine _dashCoroutine;
+     private Coroutine _rotateTowardsPlayer;
+     
      void Awake()
      {
           stateName = "Dash Melee";
      }
+
+     public override void OnEnter()
+     {
+          _performingAttack = false;
+          if(_dashCoroutine != null)
+          {
+               StopCoroutine(_dashCoroutine); // Por seguridad nada más. 
+               _dashCoroutine = null;
+          }
+          if(_rotateTowardsPlayer != null)
+          {
+               StopCoroutine(_rotateTowardsPlayer); // Por seguridad nada más. 
+               _rotateTowardsPlayer = null;
+          }
+     }
      
      public override void OnFixedUpdate()
      {
-          EnemyContext.GoToTargetPlayer();
+          // si no está apuntando o haciendo el ataque en sí, sí nos podemos mover
+          if(!_performingAttack)
+               EnemyContext.GoToTargetPlayer(); // entonces sí nos podemos mover
           
-          // 2) Cuando está cerca del jugador (dentro del rango del ataque), hace el ataque básico
+          // Si el ataque ya está listo, se ejecuta la secuencia de hacer el dash tal cual
+          if (EnemyContext.enemyAnimator.GetBool("AttackIsReady"))
+          {
+               // Cuando el ataque esté listo, dejamos de "apuntar"
+               if(_rotateTowardsPlayer != null)
+               {
+                    StopCoroutine(_rotateTowardsPlayer); // Por seguridad nada más. 
+                    _rotateTowardsPlayer = null;
+               }
+               
+               // Parte del ataque en sí, lleva un movimiento que no es tal cual controlado por el nav mesh,
+               // CREO que sería desactivar el nav mesh agent un instante mientras se hace el ataque,
+               // desplazar a este enemigo X distancia en la dirección que se había quedado al apuntar.
+               // EnemyContext. // NOTA: Si se necesita desactivarle el navMeshAgent lo haríamos aquí.
+               
+               // Como este desplazamiento es a través de X segundos -no instantaneamente- usamos una corrutina
+               if(_dashCoroutine != null)
+               {
+                    StopCoroutine(_dashCoroutine); // Por seguridad nada más. 
+                    _dashCoroutine = null;
+               }
+               
+               
+               _dashCoroutine = StartCoroutine(DashAttackCoroutine());
+               // Y quitamos el booleano del animator para que no vuelva a entrar a este if. Que solo entre una vez.
+               EnemyContext.enemyAnimator.SetBool("AttackIsReady", false);
+          }
+          
+          // 2) Cuando está cerca del jugador (dentro del rango del ataque), hace el ataque dash
           Vector3 playerPosition = EnemyContext.GetTargetPlayerPosition();
           if (Utilities.IsObjectInRange(transform.position, playerPosition, EnemyContext.GetAttackRange()))
           {
+               // Como ya está en rango de ataque, comienza a realizar el ataque
+               _performingAttack = true; // hace que deje de actualizarse la ruta después
+               EnemyContext.RemoveNavMeshAgentPath(); // hace que deje de moverse hacia donde iba ahorita.
+               
+               // Empezamos la corrutina de rotar hacia el jugador
+               
+               // Si ya está en el rango de nuestro dash, quiero que "apunte" su dash hacia el player 
+               // durante X tiempo, y después realice el dash hacia la posición + la distancia del dash en esa 
+               // dirección
+               
+               // durante el tiempo de apuntado ya no se va a mover, pero sí va a rotar hacia el player con una
+               // velocidad de rotación X. Tras el punto de apuntado ya deja de girar.
+
                if(!EnemyContext.enemyAnimator.GetBool(SwordsmanEnemy.DashSlashAttackHashId))
                     TriggerAttack();
           }
@@ -94,6 +157,32 @@ public class DashMeleeAttackState : EnemyBaseState
      private void TriggerAttack()
      {
           EnemyContext.enemyAnimator.SetBool(SwordsmanEnemy.DashSlashAttackHashId, true);
+     }
+
+     private IEnumerator DashAttackCoroutine()
+     {
+          float transcurredTime = 0.0f;
+          
+          // cada frame tiene que moverse X distancia, 
+          // donde X es la distancia que se mueve en el dash total / el tiempo que dura el movimiento del dash
+          float speedPerSecond = EnemyContext.DashAttackMovementDistance / EnemyContext.DashAttackDuration;
+          while (transcurredTime < EnemyContext.DashAttackDuration)
+          {
+               // primero avanza, desplazamos a nuestro enemigo hacia el frente según qué tanto tiempo ha pasado
+               transform.position += transform.forward * speedPerSecond * Time.deltaTime;
+               transcurredTime += Time.deltaTime; // aumentamos nuestro contador de tiempo.
+               // y que luego se espera hasta el siguiente frame
+               yield return null;
+          }
+     }
+     
+     private IEnumerator RotateTowardsPlayerCoroutine()
+     {
+          while (true)
+          {
+               transform.LookAt(EnemyContext.GetTargetPlayerPosition());
+               yield return null;
+          }
      }
 }
 

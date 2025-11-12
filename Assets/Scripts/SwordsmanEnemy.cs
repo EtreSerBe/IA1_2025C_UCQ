@@ -22,6 +22,9 @@ public class SwordsmanEnemy : BaseEnemy
     public int currentAttackHashId = -1;
     public int currentAttackDamage = 0;
 
+    private bool _isAttackReady = false;
+    public bool IsAttackReady => _isAttackReady;
+    
     // El estado le pide al contexto cuál ataque va a ejecutar ahora
      
     public void ChangeAttack(ESwordsmanAttacks newAttack)
@@ -88,7 +91,38 @@ public class SwordsmanEnemy : BaseEnemy
         // el collider de la espada se desactiva
         swordCollider.gameObject.SetActive(false);
     }
-
+    
+    void AttackPreparationReady(ESwordsmanAttacks attackID)
+    {
+        enemyAnimator.SetBool("AttackIsReady", true);
+        Debug.Log($"La animación del ataque: {attackID} indica que ya se puede realizar la acción real del personaje");
+        // switch (attackID)
+        // {
+        //     case ESwordsmanAttacks.None:
+        //         break;
+        //     case ESwordsmanAttacks.BasicSlashAttack:
+        //         // enemyAnimator.SetBool("BasicSlashAttack", false); // versión lenta
+        //         enemyAnimator.SetBool(BasicSlashAttackHashId, false); // Versión optimizada
+        //         // EnemyFsm.ChangeState<AreaMeleeAttackState>();
+        //         break;
+        //     case ESwordsmanAttacks.AreaSlashAttack:
+        //         // enemyAnimator.SetBool("AreaSlashAttack", false);
+        //         enemyAnimator.SetBool(AreaSlashAttackHashId, false);
+        //         break;
+        //     case ESwordsmanAttacks.DashSlashAttack:
+        //         enemyAnimator.SetBool(DashSlashAttackHashId, false);
+        //         break;
+        //     case ESwordsmanAttacks.UltimateSlashAttack:
+        //         enemyAnimator.SetBool(UltimateSlashAttackHashId, false);
+        //         break;
+        //     default:
+        //         throw new ArgumentOutOfRangeException(nameof(attackID), attackID, null);
+        // }
+        //
+        // // Después elegimos el ataque que sigue.
+        // SelectNextState();
+    }
+    
     void FinishedAttack(ESwordsmanAttacks attackID)
     {
         Debug.Log($"Terminó la animación del ataque: {attackID}");
@@ -126,7 +160,7 @@ public class SwordsmanEnemy : BaseEnemy
         if(EnemyFsm.CurrentStateType == typeof(BasicMeleeAttackState))
         {
             if (EnemyFsm.StatesHistory.Length < 2 || 
-                EnemyFsm.StatesHistory[^2] == typeof(RangedState))
+                EnemyFsm.StatesHistory[^2] == typeof(UltimateMeleeAttackState))
             {
                 // Entonces es Dash o Area con un 50/50
                 if (Random.value < 0.5f)
@@ -190,7 +224,7 @@ public class SwordsmanEnemy : BaseEnemy
         // Ya que se acabó el ultimate, pásate al estado ranged Basic.
         if (EnemyFsm.CurrentStateType == typeof(UltimateMeleeAttackState))
         {
-            ChangeAttack(ESwordsmanAttacks.BasicRangedAttack);
+            ChangeAttack(ESwordsmanAttacks.BasicSlashAttack);
             return;
         }
         

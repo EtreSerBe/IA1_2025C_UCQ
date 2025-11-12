@@ -1131,6 +1131,8 @@ MonoBehaviour:
   attackRate: 1
   attackRange: 9
   movementSpeed: 2
+  DashAttackMovementDistance: 10
+  DashAttackDuration: 0.3
   enemyAnimator: {fileID: 0}
   EnemyFsm: {fileID: 0}
   currentDamageMethodType: 2
@@ -1495,6 +1497,8 @@ MonoBehaviour:
   attackRate: 1
   attackRange: 3
   movementSpeed: 3
+  DashAttackMovementDistance: 10
+  DashAttackDuration: 1
   enemyAnimator: {fileID: 0}
   EnemyFsm: {fileID: 0}
   currentDamageMethodType: 0

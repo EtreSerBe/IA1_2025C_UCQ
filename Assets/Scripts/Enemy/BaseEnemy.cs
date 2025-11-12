@@ -30,6 +30,11 @@ public class BaseEnemy : MonoBehaviour, IDamageable
 
     [SerializeField] protected float movementSpeed;
 
+    // Qué tanto se desplaza hacia el frente al hacer el dash
+    public float DashAttackMovementDistance = 10;
+    // Cuánto tiempo transcurre entre que empieza a moverse en el dash y termina de moverse en el dash.
+    public float DashAttackDuration = 0.3f;
+    
     // Animator (máquina de estados de animación de Unity) que se usa para triggerear las animaciones adecuadas.
     public Animator enemyAnimator;
     public EnemyFSM EnemyFsm;
@@ -77,6 +82,11 @@ public class BaseEnemy : MonoBehaviour, IDamageable
             return; // Nos salimos para evitar que haga null reference exception
         }
         NavAgent.destination = _targetPlayer.transform.position;
+    }
+
+    public void RemoveNavMeshAgentPath()
+    {
+        NavAgent.ResetPath();
     }
 
     public bool HasDestination()

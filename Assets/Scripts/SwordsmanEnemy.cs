@@ -1,5 +1,7 @@
 using System;
+using System.Collections;
 using UnityEngine;
+using UnityEngine.AI;
 using Random = UnityEngine.Random;
 
 
@@ -24,6 +26,9 @@ public class SwordsmanEnemy : BaseEnemy
 
     private bool _isAttackReady = false;
     public bool IsAttackReady => _isAttackReady;
+
+    public float parabolicJumpHeight = 2.0f;
+    public float parabolicJumpDuration = 0.5f;
     
     // El estado le pide al contexto cuál ataque va a ejecutar ahora
      
@@ -67,11 +72,94 @@ public class SwordsmanEnemy : BaseEnemy
     public static readonly int AreaSlashAttackHashId = Animator.StringToHash("AreaSlashAttack");
     public static readonly int DashSlashAttackHashId = Animator.StringToHash("DashSlashAttack");
     public static readonly int UltimateSlashAttackHashId = Animator.StringToHash("UltimateSlashAttack");
+    public static readonly int JumpHashId = Animator.StringToHash("Jump");
 
+
+    // Hashes para Estados del animator
+    public static readonly int JumpingDownStateHashId = Animator.StringToHash("Jumping Down");
+
+    private bool _isInJumpingSequence = false;
+    
+    // Corrutina que siempre está checando si el agente está sobre un nav mesh link.
+    
+    
+    
     public void Start()
     {
         // Para que empiece con los datos del basic attack.
         ChangeAttack(ESwordsmanAttacks.BasicSlashAttack);
+        StartCoroutine(CheckForOffMeshLink());
+    }
+
+    public void Update()
+    {
+        if (NavAgent.isOnOffMeshLink == false && _isInJumpingSequence)
+        {
+            _isInJumpingSequence = false; // ahora ya se podría iniciar otro brinco distinto.
+        }
+    }
+    
+    
+    
+    IEnumerator CheckForOffMeshLink()
+    {
+        while (true)
+        {
+            // Si está sobre un off mesh link Y no está brincando actualmente...
+            if (NavAgent.isOnOffMeshLink && !_isInJumpingSequence)
+            {
+                Debug.Log($"El personaje {gameObject.name} empezó de brincar con su Off mesh Link");
+                NavAgent.isStopped = true; // le digo al agente que NO se puede seguir moviendo sino hasta que
+                                           // llegue el animation event de que el brinco ya dio el impulso.
+                enemyAnimator.SetBool(JumpHashId, true);
+                _isInJumpingSequence = true; // esta variable es la que determina que actualmente está brincando.
+
+                enemyAnimator.Play(JumpingDownStateHashId);
+                // yield return StartCoroutine(ParabolicJump(NavAgent, parabolicJumpHeight, parabolicJumpDuration));
+                // NavAgent.CompleteOffMeshLink();
+            }
+
+            yield return null;
+        }
+    }
+    
+    public void BeginJumping()
+    {
+        // El agente puede comenzar a moverse con el impulso de ese brinco.
+        StartCoroutine(ParabolicJump(NavAgent, parabolicJumpHeight, parabolicJumpDuration));
+    }
+    
+    IEnumerator ParabolicJump(NavMeshAgent navAgent, float height, float duration)
+    {
+        var offMeshLinkData = NavAgent.currentOffMeshLinkData;
+        Vector3 startPosition = navAgent.transform.position; // offMeshLinkData.startPos;
+        Vector3 endPosition = offMeshLinkData.endPos + Vector3.up * navAgent.baseOffset;
+        float normalizedTime = 0.0f;
+        while (normalizedTime < 1.0f)
+        {
+            float yOffset = height * 4.0f * (normalizedTime - normalizedTime * normalizedTime);
+            navAgent.transform.position =
+                Vector3.Lerp(startPosition, endPosition, normalizedTime) + yOffset * Vector3.up;
+                
+            normalizedTime += Time.deltaTime / duration;
+            yield return null;
+        }
+        
+        // Cuando se sale del while de arriba, quiere decir que ya se terminó el desplazamiento del brinco. 
+        // Esto hace que deje de hacer la animación de Caída y pase a la de Aterrizaje, 
+        // que cuando avance más, activa el evento de animación que manda a llamar FinishedJumpLanding().
+        enemyAnimator.SetBool(JumpHashId, false);
+
+    }
+    
+    public void FinishedJumpLanding()
+    {
+        Debug.Log($"El personaje {gameObject.name} terminó de brincar y aterrizar con su Off mesh Link");
+
+        
+        // Le decimos que ya llegó a la parte de la animación en la que ya no está detenido y puede seguir moviéndose.
+        NavAgent.isStopped = false; 
+        NavAgent.CompleteOffMeshLink();
     }
     
     // Esta función se va a mandar a llamar por el animation event y nos dice qué acción del 

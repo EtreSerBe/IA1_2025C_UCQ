@@ -1,7 +1,7 @@
 using System;
 using System.Collections;
 using UnityEngine;
-
+using Random = UnityEngine.Random;
 
 
 public class BasicMeleeAttackState : EnemyBaseState
@@ -10,6 +10,7 @@ public class BasicMeleeAttackState : EnemyBaseState
      {
           stateName = "Basic Melee";
      }
+     
      public override void OnFixedUpdate()
      {
 
@@ -33,6 +34,7 @@ public class BasicMeleeAttackState : EnemyBaseState
      private void TriggerAttack()
      {
           EnemyContext.enemyAnimator.SetBool(SwordsmanEnemy.BasicSlashAttackHashId, true);
+          EnemyContext.enemyAnimator.Play(SwordsmanEnemy.BasicSlashAttackHashId);
      }
      
 }
@@ -65,6 +67,7 @@ public class AreaMeleeAttackState : EnemyBaseState
      private void TriggerAttack()
      {
           EnemyContext.enemyAnimator.SetBool(SwordsmanEnemy.AreaSlashAttackHashId, true);
+          EnemyContext.enemyAnimator.Play(SwordsmanEnemy.AreaSlashAttackHashId);
      }
 
 }
@@ -83,6 +86,7 @@ public class DashMeleeAttackState : EnemyBaseState
 
      public override void OnEnter()
      {
+          base.OnEnter();
           _performingAttack = false;
           if(_dashCoroutine != null)
           {
@@ -157,6 +161,7 @@ public class DashMeleeAttackState : EnemyBaseState
      private void TriggerAttack()
      {
           EnemyContext.enemyAnimator.SetBool(SwordsmanEnemy.DashSlashAttackHashId, true);
+          EnemyContext.enemyAnimator.Play(SwordsmanEnemy.DashSlashAttackHashId);
      }
 
      private IEnumerator DashAttackCoroutine()
@@ -189,14 +194,64 @@ public class DashMeleeAttackState : EnemyBaseState
 
 public class UltimateMeleeAttackState : EnemyBaseState
 {
+     // Cantidad de daño que tiene que recibir el enemigo durante este estado para pasar a staggered. (interrumpido)
+     public float damageToStagger = 5;
+     private float _currentDamageTaken = 0;
+     private int _enemyHpWhenEnteringState;
+     private float _randomTimeBeforeSimulatingDamage = 0;
+     private float _transcurredTime = 0;
+     
      void Awake()
      {
           stateName = "Ultimate Melee";
      }
+
+     public override void OnEnter()
+     {
+          base.OnEnter();
+          _currentDamageTaken = 0;
+          _enemyHpWhenEnteringState = EnemyContext.CurrentHp;
+          _randomTimeBeforeSimulatingDamage = Random.Range(0.5f, 2.0f); // más o menos lo que dura la animación del ultimate.
+          _transcurredTime = 0;
+     }
      
      public override void OnFixedUpdate()
      {
+          // PARCHESOTE: No hacer nada si está staggereado.
+          if (EnemyContext.enemyAnimator.GetBool(SwordsmanEnemy.UltimateSlashStaggeredHashId))
+          {
+               return;
+          }
+          
           EnemyContext.GoToTargetPlayer();
+
+          // Este if es para solo acumular tiempo cuando sí se está ejecutando el ataque.
+          if (EnemyContext.enemyAnimator.GetBool(SwordsmanEnemy.UltimateSlashAttackHashId))
+          {
+               _transcurredTime += Time.deltaTime;
+               if (_transcurredTime >= _randomTimeBeforeSimulatingDamage)
+               {
+                    Debug.Log($"Enemigo tomando {damageToStagger} de daño simulado para el stagger porque" +
+                              $" el _randomTimeBeforeSimulatingDamage es de {_randomTimeBeforeSimulatingDamage} y" +
+                              $" _transcurredTime fue: {_transcurredTime}");
+                    EnemyContext.TakeDamage((int)damageToStagger+1);
+                    _transcurredTime = 0;
+               }
+          }
+          
+
+          
+          // Si ha sufrido al menos damageToStagger cantidad de daño, entonces se staggerea.
+          if (_enemyHpWhenEnteringState > EnemyContext.CurrentHp + damageToStagger)
+          {
+               Debug.Log("Stagger debería activarse");
+               EnemyContext.enemyAnimator.SetBool(SwordsmanEnemy.UltimateSlashAttackHashId, false);
+               EnemyContext.enemyAnimator.SetBool(SwordsmanEnemy.UltimateSlashStaggeredHashId, true);
+               // EN TEORÍA, como mi función FinishedAttack del swordsman ya me manda a seleccionar el siguiente estado,
+               // yo no tengo que hacer el ChangeState manualmente aquí.
+               // OwnerFsm.ChangeState<BasicMeleeAttackState>(); // Por ahora le diré que se vaya al basic, pero podría ser otra cosa.
+               return;
+          }
           
           // 2) Cuando está cerca del jugador (dentro del rango del ataque), hace el ataque básico
           Vector3 playerPosition = EnemyContext.GetTargetPlayerPosition();
@@ -213,6 +268,7 @@ public class UltimateMeleeAttackState : EnemyBaseState
      private void TriggerAttack()
      {
           EnemyContext.enemyAnimator.SetBool(SwordsmanEnemy.UltimateSlashAttackHashId, true);
+          EnemyContext.enemyAnimator.Play(SwordsmanEnemy.UltimateSlashAttackHashId);
      }
      
 }

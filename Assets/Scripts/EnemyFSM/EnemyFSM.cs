@@ -8,6 +8,7 @@ public class EnemyFSM : BaseFSM
     private BaseEnemy _enemyContext;
     public BaseEnemy EnemyContext => _enemyContext;
 
+
     private void Awake()
     {
         if (!TryGetComponent(out _enemyContext))
@@ -26,7 +27,8 @@ public class EnemyFSM : BaseFSM
         AddState<AreaMeleeAttackState>();
         AddState<DashMeleeAttackState>();
         AddState<UltimateMeleeAttackState>();
-        
+        AddState<BasicRangedAttackState>();
+
     }
     
 

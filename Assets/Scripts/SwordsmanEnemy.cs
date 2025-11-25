@@ -12,23 +12,40 @@ public enum ESwordsmanAttacks
     AreaSlashAttack,
     DashSlashAttack,
     UltimateSlashAttack,
+    UltimateStaggered,
     BasicRangedAttack,
+    AreaRangedAttack,
+    DashRangedAttack,
+    UltimateRangedAttack,
     MAX
 }
 
 public class SwordsmanEnemy : BaseEnemy
 {
     [SerializeField] protected Collider swordCollider;
-
+    [SerializeField] protected Projectile basicRangedAttackProjectilePrefab;
+    
     public float currentAttackRange = 0.0f;
     public int currentAttackHashId = -1;
     public int currentAttackDamage = 0;
+    public float currentAttackCooldown = 0;
 
     private bool _isAttackReady = false;
     public bool IsAttackReady => _isAttackReady;
 
     public float parabolicJumpHeight = 2.0f;
     public float parabolicJumpDuration = 0.5f;
+
+    [SerializeField] protected SO_AttackParameters basicSlashAttackParameters; 
+    [SerializeField] protected SO_AttackParameters areaSlashAttackParameters;
+    [SerializeField] protected SO_AttackParameters dashSlashAttackParameters;
+    [SerializeField] protected SO_AttackParameters ultimateSlashAttackParameters;
+
+    private float _basicSlashRemainingCooldown = 0;
+    private float _areaSlashRemainingCooldown = 0;
+    private float _dashSlashRemainingCooldown = 0;
+    private float _ultimateSlashRemainingCooldown = 0;
+    
     
     // El estado le pide al contexto cuál ataque va a ejecutar ahora
      
@@ -37,23 +54,34 @@ public class SwordsmanEnemy : BaseEnemy
         switch (newAttack)
         {
             case ESwordsmanAttacks.BasicSlashAttack:
-                currentAttackRange = 1.0f;
-                currentAttackDamage = 1;
+                currentAttackRange = basicSlashAttackParameters.Range;
+                currentAttackDamage = basicSlashAttackParameters.Damage;
+                currentAttackCooldown = basicSlashAttackParameters.Cooldown;
                 EnemyFsm.ChangeState<BasicMeleeAttackState>();
                 break;
             case ESwordsmanAttacks.AreaSlashAttack:
-                currentAttackRange = 1.5f;
-                currentAttackDamage = 3;
+                currentAttackRange = areaSlashAttackParameters.Range;
+                currentAttackDamage = areaSlashAttackParameters.Damage;
+                currentAttackCooldown = areaSlashAttackParameters.Cooldown;
                 EnemyFsm.ChangeState<AreaMeleeAttackState>();
                 break;
             case ESwordsmanAttacks.DashSlashAttack:
-                currentAttackRange = 5.0f;
-                currentAttackDamage = 2;
+                currentAttackRange = dashSlashAttackParameters.Range;
+                currentAttackDamage = dashSlashAttackParameters.Damage;
                 EnemyFsm.ChangeState<DashMeleeAttackState>();
                 break;
             case ESwordsmanAttacks.UltimateSlashAttack:
-                currentAttackRange = 3.0f;
-                currentAttackDamage = 10;
+                if (_ultimateSlashRemainingCooldown > 0.0f)
+                {
+                    currentAttackRange = basicSlashAttackParameters.Range;
+                    currentAttackDamage = basicSlashAttackParameters.Damage;
+                    // entonces el ultimate está en cooldown y no se puede usar. Hacer otra acción distinta.
+                    EnemyFsm.ChangeState<BasicMeleeAttackState>();
+                    return;
+                }
+                // si no está en cooldown, pasamos al estado del ultimate
+                currentAttackRange = ultimateSlashAttackParameters.Range;
+                currentAttackDamage = ultimateSlashAttackParameters.Damage;
                 EnemyFsm.ChangeState<UltimateMeleeAttackState>();
                 break;
             case ESwordsmanAttacks.BasicRangedAttack:
@@ -72,13 +100,25 @@ public class SwordsmanEnemy : BaseEnemy
     public static readonly int AreaSlashAttackHashId = Animator.StringToHash("AreaSlashAttack");
     public static readonly int DashSlashAttackHashId = Animator.StringToHash("DashSlashAttack");
     public static readonly int UltimateSlashAttackHashId = Animator.StringToHash("UltimateSlashAttack");
+    public static readonly int UltimateSlashStaggeredHashId = Animator.StringToHash("UltimateSlashStaggered");
+
+    
+    public static readonly int BasicRangedAttackHashId = Animator.StringToHash("BasicRangedAttack");
+    public static readonly int AreaRangedAttackHashId = Animator.StringToHash("AreaRangedAttack");
+    public static readonly int DashRangedAttackHashId = Animator.StringToHash("DashRangedAttack");
+    public static readonly int UltimateRangedAttackHashId = Animator.StringToHash("UltimateRangedAttack");
+    
     public static readonly int JumpHashId = Animator.StringToHash("Jump");
 
 
     // Hashes para Estados del animator
     public static readonly int JumpingDownStateHashId = Animator.StringToHash("Jumping Down");
 
+    
+    
     private bool _isInJumpingSequence = false;
+    
+    
     
     // Corrutina que siempre está checando si el agente está sobre un nav mesh link.
     
@@ -98,8 +138,23 @@ public class SwordsmanEnemy : BaseEnemy
             _isInJumpingSequence = false; // ahora ya se podría iniciar otro brinco distinto.
         }
     }
-    
-    
+
+    void Example()
+    {
+        
+    }
+
+
+    // Función usada por los Animation Events para que el personaje se mueva o no.
+    void SetCanMove(int canMove)
+    {
+        NavAgent.isStopped = canMove == 0;
+    }
+
+    void SetIsKinematic(int isKinematic)
+    {
+        rb.isKinematic = isKinematic == 1;
+    }
     
     IEnumerator CheckForOffMeshLink()
     {
@@ -158,7 +213,7 @@ public class SwordsmanEnemy : BaseEnemy
 
         
         // Le decimos que ya llegó a la parte de la animación en la que ya no está detenido y puede seguir moviéndose.
-        NavAgent.isStopped = false; 
+        // NavAgent.isStopped = false; 
         NavAgent.CompleteOffMeshLink();
     }
     
@@ -210,6 +265,13 @@ public class SwordsmanEnemy : BaseEnemy
         // // Después elegimos el ataque que sigue.
         // SelectNextState();
     }
+
+    void BasicRangedAttack()
+    {
+        // spawnea un objeto de la clase bala/proyectil que tenga X comportamiento.
+        Projectile basicRangedAttackProjectile = Instantiate(basicRangedAttackProjectilePrefab, transform.position, transform.rotation);
+        basicRangedAttackProjectile.Shoot();
+    }
     
     void FinishedAttack(ESwordsmanAttacks attackID)
     {
@@ -222,17 +284,28 @@ public class SwordsmanEnemy : BaseEnemy
                 // enemyAnimator.SetBool("BasicSlashAttack", false); // versión lenta
                 enemyAnimator.SetBool(BasicSlashAttackHashId, false); // Versión optimizada
                 // EnemyFsm.ChangeState<AreaMeleeAttackState>();
+                _basicSlashRemainingCooldown = basicSlashAttackParameters.Cooldown;
                 break;
             case ESwordsmanAttacks.AreaSlashAttack:
                 // enemyAnimator.SetBool("AreaSlashAttack", false);
                 enemyAnimator.SetBool(AreaSlashAttackHashId, false);
+                _areaSlashRemainingCooldown = areaSlashAttackParameters.Cooldown;
                 break;
             case ESwordsmanAttacks.DashSlashAttack:
                 enemyAnimator.SetBool(DashSlashAttackHashId, false);
+                _dashSlashRemainingCooldown = dashSlashAttackParameters.Cooldown;
                 break;
             case ESwordsmanAttacks.UltimateSlashAttack:
                 enemyAnimator.SetBool(UltimateSlashAttackHashId, false);
+                // Le ponemos el cooldown de dicho ataque.
+                _ultimateSlashRemainingCooldown = ultimateSlashAttackParameters.Cooldown;
                 break;
+            case ESwordsmanAttacks.UltimateStaggered:
+                enemyAnimator.SetBool(UltimateSlashStaggeredHashId, false);
+                break;
+            case ESwordsmanAttacks.BasicRangedAttack:
+                enemyAnimator.SetBool(BasicRangedAttackHashId, false);
+                return; // NOTA: aquí es return para que no se vaya al select next state.
             default:
                 throw new ArgumentOutOfRangeException(nameof(attackID), attackID, null);
         }
@@ -243,7 +316,9 @@ public class SwordsmanEnemy : BaseEnemy
 
     private void SelectNextState()
     {
-
+        Debug.Log("Entrando al Select Next State");
+        // EnemyFsm.ChangeState<BasicRangedAttackState>();
+        
         // Si es la primera vez en el estado de ataque básico O el estado anterior fue Ranged Ultimate, 
         if(EnemyFsm.CurrentStateType == typeof(BasicMeleeAttackState))
         {
@@ -312,7 +387,8 @@ public class SwordsmanEnemy : BaseEnemy
         // Ya que se acabó el ultimate, pásate al estado ranged Basic.
         if (EnemyFsm.CurrentStateType == typeof(UltimateMeleeAttackState))
         {
-            ChangeAttack(ESwordsmanAttacks.BasicSlashAttack);
+            EnemyFsm.ChangeState<BasicRangedAttackState>();
+            // ChangeAttack(ESwordsmanAttacks.BasicSlashAttack);
             return;
         }
         
@@ -320,5 +396,17 @@ public class SwordsmanEnemy : BaseEnemy
         // ESwordsmanAttacks newAttack = (ESwordsmanAttacks)Random.Range((int)ESwordsmanAttacks.BasicSlashAttack, (int)ESwordsmanAttacks.MAX);
         // ChangeAttack(newAttack);
     }
+    
+    
+    // public void TakeDamage(int damage)
+    // {
+    //     currentHp -= damage;
+    //     if (currentHp <= 0)
+    //     {
+    //         Debug.Log($"Destruyendo el gameObject: {gameObject.name}");
+    //         Destroy(gameObject);
+    //     }
+    // }
+
 
 }

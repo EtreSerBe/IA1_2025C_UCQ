@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 555bb20b361d3f74785af43df1fbecba
+guid: 27f04105ba779b54c8d10b0784a6ff94
 ModelImporter:
   serializedVersion: 22200
   internalIDToNameTable: []
@@ -31,11 +31,11 @@ ModelImporter:
     extraUserProperties: []
     clipAnimations:
     - serializedVersion: 16
-      name: Jumping Down Impact
+      name: Sword And Shield Take Damage
       takeName: mixamo.com
       internalID: -203655887218126122
-      firstFrame: 37
-      lastFrame: 79
+      firstFrame: 0
+      lastFrame: 21
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -48,9 +48,9 @@ ModelImporter:
       loopBlendPositionY: 0
       loopBlendPositionXZ: 0
       keepOriginalOrientation: 0
-      keepOriginalPositionY: 0
+      keepOriginalPositionY: 1
       keepOriginalPositionXZ: 0
-      heightFromFeet: 1
+      heightFromFeet: 0
       mirror: 0
       bodyMask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
       curves: []

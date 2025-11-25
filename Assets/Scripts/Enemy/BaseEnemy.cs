@@ -20,6 +20,7 @@ public class BaseEnemy : MonoBehaviour, IDamageable
     // HP
     [SerializeField] protected int maxHp;
     [SerializeField] protected int currentHp;
+    public int CurrentHp => currentHp;
     
     // Ataques y daño
     [SerializeField] protected int contactDamage;
@@ -45,6 +46,8 @@ public class BaseEnemy : MonoBehaviour, IDamageable
     protected NavMeshAgent NavAgent;
     // ME FALTA ASIGNAR EL TARGET PLAYER!
     private Player _targetPlayer;
+
+    [SerializeField] protected Rigidbody rb; 
     
     protected static readonly int MovementSpeedHashId = Animator.StringToHash("MovementSpeed");
 
@@ -277,6 +280,8 @@ public class BaseEnemy : MonoBehaviour, IDamageable
     public void TakeDamage(int damage)
     {
         currentHp -= damage;
+        Debug.Log($"El enemigo: {gameObject.name} tomó {damage} de daño y le quedan {currentHp} de HP");
+
         if (currentHp <= 0)
         {
             Debug.Log($"Destruyendo el gameObject: {gameObject.name}");

@@ -45,7 +45,7 @@ public class BaseEnemy : MonoBehaviour, IDamageable
     protected SensorySystem SensesSystem;
     protected NavMeshAgent NavAgent;
     // ME FALTA ASIGNAR EL TARGET PLAYER!
-    private Player _targetPlayer;
+    protected Player TargetPlayer;
 
     [SerializeField] protected Rigidbody rb; 
     
@@ -73,18 +73,18 @@ public class BaseEnemy : MonoBehaviour, IDamageable
 
     public Vector3 GetTargetPlayerPosition()
     {
-        if(_targetPlayer)
-            return _targetPlayer.transform.position;
+        if(TargetPlayer)
+            return TargetPlayer.transform.position;
         return Vector3.zero;
     }
     public void GoToTargetPlayer()
     {
-        if (_targetPlayer == null)
+        if (TargetPlayer == null)
         {
             Debug.Log($"El enemigo {gameObject.name} no tiene asignado un target player en su go to target");
             return; // Nos salimos para evitar que haga null reference exception
         }
-        NavAgent.destination = _targetPlayer.transform.position;
+        NavAgent.destination = TargetPlayer.transform.position;
     }
 
     public void RemoveNavMeshAgentPath()
@@ -139,8 +139,8 @@ public class BaseEnemy : MonoBehaviour, IDamageable
         List<GameObject> sensedObjects = SensesSystem.SensedObjects;
         if (sensedObjects != null && sensedObjects.Count > 0) // tiene que ser válido y tener al menos 1 elemento
         {
-            _targetPlayer = SensesSystem.SensedObjects[0].GetComponent<Player>();
-            if (_targetPlayer == null)
+            TargetPlayer = SensesSystem.SensedObjects[0].GetComponent<Player>();
+            if (TargetPlayer == null)
             {
                 Debug.LogError($"El gameObject: {SensesSystem.SensedObjects[0].name} no" +
                                $"tiene un script de Player pero fue detectado por el sistema sensorial," +

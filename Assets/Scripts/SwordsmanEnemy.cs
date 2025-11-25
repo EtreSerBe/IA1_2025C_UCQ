@@ -45,7 +45,8 @@ public class SwordsmanEnemy : BaseEnemy
     private float _areaSlashRemainingCooldown = 0;
     private float _dashSlashRemainingCooldown = 0;
     private float _ultimateSlashRemainingCooldown = 0;
-    
+
+    public float rangedStatePreferredCombatDistance = 5.0f;
     
     // El estado le pide al contexto cuál ataque va a ejecutar ahora
      
@@ -73,6 +74,7 @@ public class SwordsmanEnemy : BaseEnemy
             case ESwordsmanAttacks.UltimateSlashAttack:
                 if (_ultimateSlashRemainingCooldown > 0.0f)
                 {
+                    Debug.Log($"Se hizo el Basic Slash en vez del últimate slash porque está en cooldown.");
                     currentAttackRange = basicSlashAttackParameters.Range;
                     currentAttackDamage = basicSlashAttackParameters.Damage;
                     // entonces el ultimate está en cooldown y no se puede usar. Hacer otra acción distinta.
@@ -139,10 +141,19 @@ public class SwordsmanEnemy : BaseEnemy
         }
     }
 
-    void Example()
+    // Qué tanta distancia respecto al player tiene que estar
+    void GoToPositionRelativeToPlayer(float distanceToPlayer)
     {
-        
+        if (TargetPlayer == null)
+        {
+            Debug.Log($"El enemigo {gameObject.name} no tiene asignado un target player en su go to target");
+            return; // Nos salimos para evitar que haga null reference exception
+        }
+        // en vez de irnos directamente a su posición, nos vamos a 
+        Vector3 directionFromPlayerToThis = transform.position - TargetPlayer.transform.position; 
+        NavAgent.destination = TargetPlayer.transform.position + directionFromPlayerToThis.normalized * distanceToPlayer;
     }
+    
 
 
     // Función usada por los Animation Events para que el personaje se mueva o no.

@@ -34,7 +34,19 @@ public class BasicRangedAttackState : EnemyBaseState
                     else
                     {
                          Debug.Log("basic ranged está cambiando a area melee");
-                         OwnerFsm.ChangeState<AreaMeleeAttackState>();
+                         float randomValue = Random.value;
+                         if (randomValue < 0.25f) // OJO: cambien este 0.25 por una variable!
+                         {
+                              OwnerFsm.ChangeState<AreaMeleeAttackState>();
+                         }
+                         else if (randomValue < 0.5f)
+                         {
+                              OwnerFsm.ChangeState<DashMeleeAttackState>();
+                         }
+                         else
+                         {
+                              OwnerFsm.ChangeState<BasicMeleeAttackState>();
+                         }
                     }
                }
           }

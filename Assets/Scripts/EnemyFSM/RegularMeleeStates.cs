@@ -6,6 +6,22 @@ using Random = UnityEngine.Random;
 
 public class BasicMeleeAttackState : EnemyBaseState
 {
+     private float _timeToAttackTranscurredTime = 0;
+     // Tiempo total (no continuo) que debe transcurrir antes de realizar el ataque
+     private float _timeBeforeAttacking;
+     private float _maxTimeBeforeAttacking = 2.5f;
+     private float _minTimeBeforeAttacking = 0.2f;
+
+     private Coroutine timeToRefreshTranscurredTimeCoroutine;
+
+     private float timeToRefreshTranscurredTimeToAttack = 1.0f;
+     
+     public override void OnEnter()
+     {
+          _timeToAttackTranscurredTime = 0;
+          _timeBeforeAttacking = Random.Range(_minTimeBeforeAttacking, _maxTimeBeforeAttacking);
+     }
+     
      void Awake()
      {
           stateName = "Basic Melee";
@@ -20,13 +36,51 @@ public class BasicMeleeAttackState : EnemyBaseState
           Vector3 playerPosition = EnemyContext.GetTargetPlayerPosition();
           if (Utilities.IsObjectInRange(transform.position, playerPosition, EnemyContext.GetAttackRange()))
           {
-               // Activamos el ataque básico. Solo si no está ejecutándose ya.
-               // if(AttackCoroutine == null) // Si es null, quiere decir que la corrutina no está activa.
-               //      AttackCoroutine = StartCoroutine( DoBasicAttack());
-               // Si este bool de la animación de basicSlashAttack no está activado, entonces sí lo ponemos como true.
-               if(!EnemyContext.enemyAnimator.GetBool(SwordsmanEnemy.BasicSlashAttackHashId))
+               if (EnemyContext.enemyAnimator.GetBool(SwordsmanEnemy.BasicSlashAttackHashId))
+                    return; // nada que hacer, porque ya está realizando este ataque.
+               
+               // Acumulas tiempo para ver si ya es momento de atacar
+               _timeToAttackTranscurredTime += Time.fixedDeltaTime;
+               
+               // Si ya es momento, entonces...
+               if (_timeBeforeAttacking < _timeToAttackTranscurredTime)
+               {
+                    Debug.Log($"Ya se cumplió el tiempo de {_timeBeforeAttacking} porque " +
+                              $"pasaron {_timeToAttackTranscurredTime} de tiempo");
+                    _timeToAttackTranscurredTime = 0; // por pura seguridad
+                    // Activamos el ataque básico. Solo si no está ejecutándose ya.
+                    // Si este bool de la animación de basicSlashAttack no está activado, entonces sí lo ponemos como true.
                     TriggerAttack();
+               }
           }
+          else // si no está en rango de ataque
+          {
+               if (_timeToAttackTranscurredTime <= 0) // que no inicie la corrutina si no ha tenido al player cerca.
+                    return;
+                    
+               // decimos que empiece a bajar el contador de tiempo si después de 1 segundo no lo hemos tenido de nuevo en rango
+               if (timeToRefreshTranscurredTimeCoroutine != null)
+                    return; // si no es null, ya está activa, entonces no hay nada que hacerle.
+               
+               timeToRefreshTranscurredTimeCoroutine = StartCoroutine(refreshTranscurredTimeToAttack());
+          }
+     }
+
+     // OJO: este tipo de cosa puede llevar a exploits!
+     private IEnumerator refreshTranscurredTimeToAttack()
+     {
+          float timeCounter = 0;
+          while (timeCounter < timeToRefreshTranscurredTimeToAttack)
+          {
+               timeCounter += Time.deltaTime;
+               yield return null;
+          }
+          
+          Debug.Log($"El melee básico se reseteó su tiempo porque el player estuvo fuera de rango más de un segundo");
+
+          _timeToAttackTranscurredTime = 0.0f;
+          _timeBeforeAttacking = Random.Range(_minTimeBeforeAttacking, _maxTimeBeforeAttacking);
+          timeToRefreshTranscurredTimeCoroutine = null;
      }
 
      // Vamos a activar las variables de la Máquina de estados de animación (Animator) para que se triggeree la animación
